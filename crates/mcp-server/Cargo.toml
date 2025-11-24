@@ -1,0 +1,26 @@
+[package]
+name = "mcp-server"
+version = "0.1.0"
+edition = "2021"
+
+
+
+[dependencies]
+anyhow = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-appender = { workspace = true }
+directories = { workspace = true }
+jira_core = { path = "../core", package = "core" }
+jira-client = { path = "../jira-client" }
+schemars = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+futures = "0.3"
+
+# The actual crate name in the SDK may differ; this uses a placeholder alias.
+# Update once the correct crate name is confirmed.
+[dependencies.rmcp]
+git = "https://github.com/modelcontextprotocol/rust-sdk"
+features = ["server", "transport-io"]
