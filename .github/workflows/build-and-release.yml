@@ -20,10 +20,6 @@ jobs:
             os: macos-latest
             target: x86_64-apple-darwin
             artifact_name: mcp-server-macos-x86_64
-          - name: macOS ARM64
-            os: macos-latest-large
-            target: aarch64-apple-darwin
-            artifact_name: mcp-server-macos-aarch64
 
     steps:
       - name: Checkout code
@@ -105,9 +101,6 @@ jobs:
             **Binaries:**
             - Linux x86_64
             - macOS x86_64 (Intel)
-            - macOS ARM64 (Apple Silicon)
           files: artifacts/**/mcp-server*
           draft: false
           prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
