@@ -1,0 +1,113 @@
+name: Build and Release mcp-server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform.name }}
+    runs-on: ${{ matrix.platform.os }}
+    strategy:
+      matrix:
+        platform:
+          - name: Linux x86_64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: mcp-server-linux-x86_64
+          - name: macOS x86_64
+            os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: mcp-server-macos-x86_64
+          - name: macOS ARM64
+            os: macos-latest-large
+            target: aarch64-apple-darwin
+            artifact_name: mcp-server-macos-aarch64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build mcp-server
+        run: cargo build --release --package mcp-server --target ${{ matrix.platform.target }}
+
+      - name: Strip binary (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          strip "target/${{ matrix.platform.target }}/release/mcp-server" || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform.artifact_name }}
+          path: target/${{ matrix.platform.target }}/release/mcp-server
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Generate release info
+        id: release_info
+        run: |
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "commit_msg=${COMMIT_MSG}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v0.1.0-${{ steps.release_info.outputs.short_sha }}
+          name: Release v0.1.0-${{ steps.release_info.outputs.short_sha }}
+          body: |
+            Build for commit: ${{ github.sha }}
+
+            **Commit Message:**
+            ${{ steps.release_info.outputs.commit_msg }}
+
+            **Binaries:**
+            - Linux x86_64
+            - macOS x86_64 (Intel)
+            - macOS ARM64 (Apple Silicon)
+          files: artifacts/**/mcp-server*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
