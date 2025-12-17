@@ -23,4 +23,5 @@ futures = "0.3"
 # Update once the correct crate name is confirmed.
 [dependencies.rmcp]
 git = "https://github.com/modelcontextprotocol/rust-sdk"
+tag = "rmcp-v0.11.0"
 features = ["server", "transport-io"]

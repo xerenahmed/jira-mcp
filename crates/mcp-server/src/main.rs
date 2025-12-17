@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 use directories::ProjectDirs;
@@ -16,7 +16,7 @@ async fn main() -> Result<()> {
 fn init_tracing() -> tracing_appender::non_blocking::WorkerGuard {
     let log_path = get_log_dir();
     
-    if let Err(_) = fs::create_dir_all(&log_path) {
+    if fs::create_dir_all(&log_path).is_err() {
         eprintln!("Warning: Failed to create log directory at {}, falling back to temp directory", log_path.display());
         let fallback_path = std::env::temp_dir().join("jira-mcp-logs");
         if let Err(e) = fs::create_dir_all(&fallback_path) {
@@ -28,7 +28,7 @@ fn init_tracing() -> tracing_appender::non_blocking::WorkerGuard {
     }
 }
 
-fn setup_logging(log_path: &PathBuf) -> tracing_appender::non_blocking::WorkerGuard {
+fn setup_logging(log_path: &Path) -> tracing_appender::non_blocking::WorkerGuard {
     let log_file = log_path.join("jira-mcp.log");
 
     let file = fs::OpenOptions::new()
