@@ -1,9 +1,20 @@
 use anyhow::{anyhow, Result};
 use jira_client::{client::JiraClient, auth::Auth as JiraAuth, config::JiraConfig};
-use schemars::JsonSchema;
+use schemars::{JsonSchema, Schema, SchemaGenerator};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 mod utils;
+
+/// Custom schema for serde_json::Value that produces a proper object schema
+/// instead of `true` (which is valid JSON Schema 2020-12 but not accepted by some clients)
+fn json_object_schema(_gen: &mut SchemaGenerator) -> Schema {
+    serde_json::from_value(serde_json::json!({
+        "type": "object",
+        "description": "A JSON object with Jira field key-value pairs",
+        "additionalProperties": true
+    }))
+    .expect("valid schema")
+}
 
 #[cfg(test)]
 mod tests;
@@ -11,7 +22,7 @@ mod tests;
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct UpdateIssueInput {
     pub issue_key: String,
-    #[schemars(with = "serde_json::Value")]
+    #[schemars(schema_with = "json_object_schema")]
     pub fields: serde_json::Value,
 }
 
@@ -31,7 +42,7 @@ pub enum UpdateIssueResult {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct CreateIssueInput {
-    #[schemars(with = "serde_json::Value")]
+    #[schemars(schema_with = "json_object_schema")]
     pub fields: serde_json::Value,
 }
 
