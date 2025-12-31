@@ -7,7 +7,68 @@ Developer-focused Model Context Protocol (MCP) server for Jira that communicates
   - `crates/mcp-server`: MCP server exposing Jira tools
   - `crates/jira-client`: Jira REST client and config loader
   - `crates/core`: Shared models and helpers
-- Tools: `create_issue`, `update_issue`, `search_issues`, `list_fields`, `get_field_details`, `get_issue`, `get_user_info`, `list_issue_types`, `list_boards`, `list_projects`, `search_users`
+- **31 tools** across 7 categories (see below)
+
+## Available Tools
+
+### Issue Management
+| Tool | Description |
+|------|-------------|
+| `create_issue` | Create a Jira issue |
+| `update_issue` | Update issue fields |
+| `get_issue` | Get issue with full fields, name mapping, schema |
+| `search_issues` | Search by JQL query |
+| `assign_issue` | Assign/unassign user |
+| `get_transitions` | Get available status transitions |
+| `transition_issue` | Transition to new status |
+
+### Comments
+| Tool | Description |
+|------|-------------|
+| `add_comment` | Add comment (supports visibility restrictions) |
+| `get_comments` | Get comments (ordered by created) |
+| `update_comment` | Update existing comment |
+| `delete_comment` | Delete comment |
+
+### Labels
+| Tool | Description |
+|------|-------------|
+| `list_labels` | List/search labels (use `query` for 200+ labels) |
+| `add_label` | Add labels (accepts array) |
+| `remove_label` | Remove labels (accepts array) |
+
+### Watchers
+| Tool | Description |
+|------|-------------|
+| `get_watchers` | Get all watchers |
+| `add_watcher` | Add watcher |
+| `remove_watcher` | Remove watcher |
+
+### Issue Links
+| Tool | Description |
+|------|-------------|
+| `list_link_types` | List available link types (Blocks, Duplicates, etc.) |
+| `link_issues` | Create link between issues |
+| `delete_issue_link` | Delete issue link |
+
+### Sprint Management
+| Tool | Description |
+|------|-------------|
+| `list_sprints` | List sprints for a board |
+| `get_sprint` | Get sprint details |
+| `move_to_sprint` | Move issues to sprint |
+| `move_to_backlog` | Move issues to backlog |
+
+### Metadata & Users
+| Tool | Description |
+|------|-------------|
+| `list_projects` | List accessible projects |
+| `list_boards` | List boards for project |
+| `list_issue_types` | List issue types |
+| `list_fields` | List fields for project/issue type |
+| `get_field_details` | Get field schema and allowed values |
+| `get_user_info` | Get current user info |
+| `search_users` | Search users by name/email |
 
 ## Installing
 - Requires Rust (stable). The repo pins via `rust-toolchain.toml`.
