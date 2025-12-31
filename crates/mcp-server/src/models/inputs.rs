@@ -64,6 +64,13 @@ pub struct SearchUsersInput {
     pub assignable_only: bool,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct AddLabelInput {
+    pub issue_key: String,
+    /// The label to add to the issue
+    pub label: String,
+}
+
 pub fn default_limit() -> usize {
     20
 }

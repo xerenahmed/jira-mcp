@@ -408,6 +408,33 @@ impl ApiClient {
         }
         Ok(issues)
     }
+    pub async fn add_label(
+        &self,
+        issue_key: &str,
+        label: &str,
+        auth: &Auth,
+    ) -> Result<()> {
+        tracing::info!(target: "jira", op = "add_label", issue_key = %issue_key, label = %label);
+
+        let body = serde_json::json!({
+            "update": {
+                "labels": [
+                    { "add": label }
+                ]
+            }
+        });
+
+        self.make_request(
+            reqwest::Method::PUT,
+            &format!("/rest/api/3/issue/{}", issue_key),
+            auth,
+            None,
+            Some(body),
+        ).await?;
+
+        Ok(())
+    }
+
     pub async fn list_issue_types(
         &self,
         project_key: Option<&str>,
