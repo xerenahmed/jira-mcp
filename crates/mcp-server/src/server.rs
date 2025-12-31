@@ -324,7 +324,7 @@ impl JiraAssistantServer {
         handlers::issues::list_link_types_handler(&ctx).await
     }
 
-    #[tool(description = "List all available labels in Jira (paginated)")]
+    #[tool(description = "List or search labels in Jira. Use 'query' to filter by name (recommended for large orgs), or omit for paginated full list.")]
     async fn list_labels(
         &self,
         p: Parameters<ListLabelsInput>,

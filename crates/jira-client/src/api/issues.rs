@@ -933,15 +933,56 @@ impl ApiClient {
         ).await
     }
 
-    /// List all available labels in Jira (paginated)
+    /// List labels in Jira. When query is provided, uses autocomplete suggestions for filtering.
+    /// Otherwise returns paginated list of all labels.
     pub async fn list_labels(
         &self,
+        query: Option<&str>,
         start_at: Option<u32>,
         max_results: Option<u32>,
         auth: &Auth,
     ) -> Result<Value> {
-        tracing::info!(target: "jira", op = "list_labels", start_at = ?start_at, max_results = ?max_results);
+        tracing::info!(target: "jira", op = "list_labels", query = ?query, start_at = ?start_at, max_results = ?max_results);
 
+        // When query is provided, use autocomplete suggestions endpoint for filtering
+        if let Some(q) = query {
+            let mut query_params: Vec<(String, String)> = vec![
+                ("fieldName".into(), "labels".into()),
+            ];
+
+            if !q.is_empty() {
+                query_params.push(("fieldValue".into(), q.to_string()));
+            }
+
+            let response: Value = self.make_request(
+                reqwest::Method::GET,
+                "/rest/api/3/jql/autocompletedata/suggestions",
+                auth,
+                Some(query_params),
+                None,
+            ).await?;
+
+            // Transform autocomplete response to consistent format
+            let labels: Vec<String> = response
+                .get("results")
+                .and_then(|r| r.as_array())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|item| item.get("value").and_then(|v| v.as_str()))
+                        .map(|s| s.to_string())
+                        .collect()
+                })
+                .unwrap_or_default();
+
+            return Ok(json!({
+                "labels": labels,
+                "count": labels.len(),
+                "filtered": true,
+                "query": q
+            }));
+        }
+
+        // Without query, use paginated label list endpoint
         let mut query_params: Vec<(String, String)> = Vec::new();
 
         if let Some(start) = start_at {
@@ -952,7 +993,7 @@ impl ApiClient {
             query_params.push(("maxResults".into(), max.to_string()));
         }
 
-        let query = if query_params.is_empty() {
+        let params = if query_params.is_empty() {
             None
         } else {
             Some(query_params)
@@ -962,7 +1003,7 @@ impl ApiClient {
             reqwest::Method::GET,
             "/rest/api/3/label",
             auth,
-            query,
+            params,
             None,
         ).await
     }

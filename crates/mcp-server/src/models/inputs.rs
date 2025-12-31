@@ -208,10 +208,13 @@ pub struct ListLinkTypesInput {}
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct ListLabelsInput {
-    /// Index of the first item to return (0-based pagination)
+    /// Filter labels by name (partial match). When provided, uses autocomplete suggestions endpoint.
+    #[serde(default)]
+    pub query: Option<String>,
+    /// Index of the first item to return (0-based pagination). Only used when query is not provided.
     #[serde(default)]
     pub start_at: Option<u32>,
-    /// Maximum number of labels to return (default: 1000)
+    /// Maximum number of labels to return (default: 1000). Only used when query is not provided.
     #[serde(default)]
     pub max_results: Option<u32>,
 }

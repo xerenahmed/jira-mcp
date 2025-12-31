@@ -364,10 +364,11 @@ impl JiraClient {
 
     pub async fn list_labels(
         &self,
+        query: Option<&str>,
         start_at: Option<u32>,
         max_results: Option<u32>,
         auth: &Auth,
     ) -> Result<serde_json::Value> {
-        self.api_client.list_labels(start_at, max_results, auth).await
+        self.api_client.list_labels(query, start_at, max_results, auth).await
     }
 }

@@ -190,20 +190,29 @@ pub async fn list_labels_handler(
     tracing::info!(
         target: "mcp",
         tool = "list_labels",
+        query = ?input.query,
         start_at = ?input.start_at,
         max_results = ?input.max_results
     );
 
     let result = ctx
         .client
-        .list_labels(input.start_at, input.max_results, &ctx.auth)
+        .list_labels(input.query.as_deref(), input.start_at, input.max_results, &ctx.auth)
         .await
         .map_err(|e| log_err("list_labels", "jira_error", e.to_string()))?;
+
+    // Count differs based on response format (autocomplete vs paginated)
+    let count = result
+        .get("results")
+        .and_then(|v| v.as_array())
+        .or_else(|| result.get("values").and_then(|v| v.as_array()))
+        .map(|a| a.len())
+        .unwrap_or(0);
 
     tracing::info!(
         target: "mcp",
         tool = "list_labels",
-        count = result.get("values").and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0),
+        count = count,
         "Labels listed successfully"
     );
 
