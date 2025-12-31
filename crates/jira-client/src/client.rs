@@ -170,6 +170,15 @@ impl JiraClient {
         self.api_client.assign_issue(issue_key, account_id, auth).await
     }
 
+    pub async fn add_watcher(
+        &self,
+        issue_key: &str,
+        account_id: &str,
+        auth: &Auth,
+    ) -> Result<()> {
+        self.api_client.add_watcher(issue_key, account_id, auth).await
+    }
+
 
     pub async fn get_board_configuration(
         &self,

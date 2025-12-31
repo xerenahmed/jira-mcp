@@ -7,7 +7,7 @@ use rmcp::model::CallToolResult;
 use super::error_utils::{extract_error_message, get_jql_suggestions, get_create_suggestions, get_update_suggestions};
 use super::super::context::JiraCtx;
 use super::super::errors::log_err;
-use super::super::models::{SearchIssuesInput, GetIssueInput, GetTransitionsInput, TransitionIssueInput, AddCommentInput, GetCommentsInput, AssignIssueInput};
+use super::super::models::{SearchIssuesInput, GetIssueInput, GetTransitionsInput, TransitionIssueInput, AddCommentInput, GetCommentsInput, AssignIssueInput, AddWatcherInput};
 use jira_client::utils::adf_collect_text;
 
 pub async fn create_issue_handler(
@@ -706,4 +706,67 @@ pub async fn assign_issue_handler(
         "status": status,
         "account_id": input.account_id
     })))
+}
+
+pub async fn add_watcher_handler(
+    input: AddWatcherInput,
+    ctx: &JiraCtx,
+) -> Result<CallToolResult, rmcp::ErrorData> {
+    tracing::info!(
+        target: "mcp",
+        tool = "add_watcher",
+        issue_key = %input.issue_key,
+        account_id = %input.account_id,
+        "Adding watcher to issue"
+    );
+
+    ctx.client
+        .add_watcher(&input.issue_key, &input.account_id, &ctx.auth)
+        .await
+        .map_err(|e| {
+            tracing::error!(
+                target: "mcp",
+                tool = "add_watcher",
+                error = %e,
+                issue_key = %input.issue_key,
+                account_id = %input.account_id,
+                "Failed to add watcher"
+            );
+
+            if let Some(jira_client::error::JiraError::ApiError { status_code, response }) = e.downcast_ref::<jira_client::error::JiraError>() {
+                let error_message = extract_error_message(response);
+
+                return rmcp::ErrorData::internal_error(
+                    format!("Jira API Error ({}): {}", status_code, error_message),
+                    Some(serde_json::json!({
+                        "issue_key": input.issue_key,
+                        "account_id": input.account_id,
+                        "status_code": status_code,
+                        "jira_response": response
+                    })),
+                );
+            }
+
+            rmcp::ErrorData::internal_error(
+                format!("Failed to add watcher to issue {}: {}", input.issue_key, e),
+                None
+            )
+        })?;
+
+    tracing::info!(
+        target: "mcp",
+        tool = "add_watcher",
+        issue_key = %input.issue_key,
+        account_id = %input.account_id,
+        "Watcher added successfully"
+    );
+
+    Ok(CallToolResult::structured(
+        serde_json::json!({
+            "success": true,
+            "issue_key": input.issue_key,
+            "account_id": input.account_id,
+            "message": format!("User {} added as watcher to issue {}", input.account_id, input.issue_key)
+        }),
+    ))
 }
