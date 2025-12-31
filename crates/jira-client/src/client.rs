@@ -161,6 +161,15 @@ impl JiraClient {
         self.api_client.get_comments(issue_key, max_results, order_by, auth).await
     }
 
+    pub async fn assign_issue(
+        &self,
+        issue_key: &str,
+        account_id: Option<&str>,
+        auth: &Auth,
+    ) -> Result<()> {
+        self.api_client.assign_issue(issue_key, account_id, auth).await
+    }
+
 
     pub async fn get_board_configuration(
         &self,

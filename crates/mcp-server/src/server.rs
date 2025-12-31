@@ -184,6 +184,16 @@ impl JiraAssistantServer {
         let ctx = jira_ctx()?;
         handlers::issues::get_comments_handler(input, &ctx).await
     }
+
+    #[tool(description = "Assign or unassign a user to/from an issue")]
+    async fn assign_issue(
+        &self,
+        p: Parameters<AssignIssueInput>,
+    ) -> Result<CallToolResult, rmcp::ErrorData> {
+        let Parameters(input) = p;
+        let ctx = jira_ctx()?;
+        handlers::issues::assign_issue_handler(input, &ctx).await
+    }
 }
 
 #[tool_handler]
@@ -193,7 +203,7 @@ impl ServerHandler for JiraAssistantServer {
             protocol_version: ProtocolVersion::V_2025_06_18,
             capabilities: ServerCapabilities::builder().enable_tools().build(),
             server_info: Implementation::from_build_env(),
-            instructions: Some("Jira Assistant tools: create_issue, update_issue, search_issues, list_fields, get_field_details, list_issue_types, list_boards, list_sprints, get_issue, get_user_info, list_projects, search_users, get_transitions, transition_issue, add_comment, get_comments".into()),
+            instructions: Some("Jira Assistant tools: create_issue, update_issue, search_issues, list_fields, get_field_details, list_issue_types, list_boards, list_sprints, get_issue, get_user_info, list_projects, search_users, get_transitions, transition_issue, add_comment, get_comments, assign_issue".into()),
         }
     }
 }

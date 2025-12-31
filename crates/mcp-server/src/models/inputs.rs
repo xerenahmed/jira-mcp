@@ -110,6 +110,14 @@ pub struct ListSprintsInput {
     pub state: Option<String>,  // "future", "active", "closed"
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct AssignIssueInput {
+    pub issue_key: String,
+    /// Account ID of the user to assign. Set to null or omit to unassign.
+    #[serde(default)]
+    pub account_id: Option<String>,
+}
+
 pub fn default_limit() -> usize {
     20
 }
