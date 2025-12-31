@@ -561,6 +561,29 @@ impl ApiClient {
         Ok(())
     }
 
+    pub async fn remove_watcher(
+        &self,
+        issue_key: &str,
+        account_id: &str,
+        auth: &Auth,
+    ) -> Result<()> {
+        tracing::info!(target: "jira", op = "remove_watcher", issue_key = %issue_key, account_id = %account_id);
+
+        let query_params = vec![
+            ("accountId".into(), account_id.to_string()),
+        ];
+
+        self.make_request(
+            reqwest::Method::DELETE,
+            &format!("/rest/api/3/issue/{}/watchers", issue_key),
+            auth,
+            Some(query_params),
+            None,
+        ).await?;
+
+        Ok(())
+    }
+
     pub async fn get_comments(
         &self,
         issue_key: &str,
