@@ -507,7 +507,6 @@ pub async fn add_comment_handler(
             )
         })?;
 
-    // Extract useful info from response
     let comment_id = response.get("id").and_then(|v| v.as_str()).unwrap_or("");
     let author_name = response
         .get("author")
@@ -591,10 +590,8 @@ pub async fn get_comments_handler(
             )
         })?;
 
-    // Extract total count
     let total = response.get("total").and_then(|t| t.as_u64()).unwrap_or(0);
 
-    // Process comments to extract relevant fields with plain text body
     let comments: Vec<serde_json::Value> = response
         .get("comments")
         .and_then(|c| c.as_array())

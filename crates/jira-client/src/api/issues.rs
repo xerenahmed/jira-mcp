@@ -477,14 +477,12 @@ impl ApiClient {
             }
         });
 
-        // Add optional fields
         if let Some(fields_val) = fields {
             if let Some(obj) = payload.as_object_mut() {
                 obj.insert("fields".to_string(), fields_val.clone());
             }
         }
 
-        // Add optional comment in ADF format
         if let Some(comment_text) = comment {
             let comment_adf = serde_json::json!({
                 "type": "doc",
@@ -547,7 +545,6 @@ impl ApiClient {
     ) -> Result<()> {
         tracing::info!(target: "jira", op = "add_watcher", issue_key = %issue_key, account_id = %account_id);
 
-        // Note: The body is just the account ID as a JSON string, not an object
         let body = serde_json::Value::String(account_id.to_string());
 
         self.make_request(
@@ -665,7 +662,6 @@ impl ApiClient {
     ) -> Result<Value> {
         tracing::info!(target: "jira", op = "update_comment", issue_key = %issue_key, comment_id = %comment_id);
 
-        // Convert plain text to ADF format
         let adf_body = serde_json::json!({
             "body": {
                 "type": "doc",
@@ -812,7 +808,6 @@ impl ApiClient {
             query_params.push(("maxResults".into(), max.to_string()));
         }
 
-        // Default to newest first if not specified
         let order = order_by.unwrap_or("-created");
         query_params.push(("orderBy".into(), order.to_string()));
 
@@ -944,7 +939,6 @@ impl ApiClient {
     ) -> Result<Value> {
         tracing::info!(target: "jira", op = "list_labels", query = ?query, start_at = ?start_at, max_results = ?max_results);
 
-        // When query is provided, use autocomplete suggestions endpoint for filtering
         if let Some(q) = query {
             let mut query_params: Vec<(String, String)> = vec![
                 ("fieldName".into(), "labels".into()),
@@ -962,7 +956,6 @@ impl ApiClient {
                 None,
             ).await?;
 
-            // Transform autocomplete response to consistent format
             let labels: Vec<String> = response
                 .get("results")
                 .and_then(|r| r.as_array())
@@ -982,7 +975,6 @@ impl ApiClient {
             }));
         }
 
-        // Without query, use paginated label list endpoint
         let mut query_params: Vec<(String, String)> = Vec::new();
 
         if let Some(start) = start_at {

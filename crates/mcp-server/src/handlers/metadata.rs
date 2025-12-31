@@ -201,7 +201,6 @@ pub async fn list_labels_handler(
         .await
         .map_err(|e| log_err("list_labels", "jira_error", e.to_string()))?;
 
-    // Check total count from paginated response (when query is not provided)
     if input.query.is_none() {
         let total = result.get("total").and_then(|v| v.as_u64()).unwrap_or(0);
         if total > 200 {
@@ -219,7 +218,6 @@ pub async fn list_labels_handler(
         }
     }
 
-    // Count differs based on response format (autocomplete vs paginated)
     let count = result
         .get("labels")
         .and_then(|v| v.as_array())
