@@ -1,5 +1,5 @@
 use anyhow::Result;
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use crate::auth::Auth;
 use crate::models::{Issue, IssueDetail, IssueType};
@@ -7,6 +7,34 @@ use crate::utils::{adf_collect_text, normalize_whitespace, clean_value_recursive
 use super::ApiClient;
 
 const DEFAULT_PAGE_SIZE: usize = 100;
+
+/// Visibility settings for a comment
+#[derive(Debug, Clone)]
+pub struct CommentVisibility {
+    /// Type of visibility: "role" or "group"
+    pub visibility_type: String,
+    /// The role or group name (e.g., "Administrators", "jira-developers")
+    pub value: String,
+}
+
+/// Converts plain text to Atlassian Document Format (ADF)
+pub fn text_to_adf(text: &str) -> Value {
+    json!({
+        "type": "doc",
+        "version": 1,
+        "content": [
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": text
+                    }
+                ]
+            }
+        ]
+    })
+}
 
 fn extract_string_field(obj: &Value, key: &str, default: &str) -> String {
     obj.get(key)
@@ -553,5 +581,40 @@ impl ApiClient {
             }
             Ok(out)
         }
+    }
+
+    /// Add a comment to a Jira issue
+    pub async fn add_comment(
+        &self,
+        issue_key: &str,
+        body: &str,
+        visibility: Option<CommentVisibility>,
+        auth: &Auth,
+    ) -> Result<Value> {
+        tracing::info!(target: "jira", op = "add_comment", issue_key = %issue_key);
+
+        let adf_body = text_to_adf(body);
+
+        let mut payload = json!({
+            "body": adf_body
+        });
+
+        if let Some(vis) = visibility {
+            payload.as_object_mut().unwrap().insert(
+                "visibility".to_string(),
+                json!({
+                    "type": vis.visibility_type,
+                    "value": vis.value
+                }),
+            );
+        }
+
+        self.make_request(
+            reqwest::Method::POST,
+            &format!("/rest/api/3/issue/{}/comment", issue_key),
+            auth,
+            None,
+            Some(payload),
+        ).await
     }
 }

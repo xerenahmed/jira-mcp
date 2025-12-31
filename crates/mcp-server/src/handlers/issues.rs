@@ -7,7 +7,7 @@ use rmcp::model::CallToolResult;
 use super::error_utils::{extract_error_message, get_jql_suggestions, get_create_suggestions, get_update_suggestions};
 use super::super::context::JiraCtx;
 use super::super::errors::log_err;
-use super::super::models::{SearchIssuesInput, GetIssueInput, GetTransitionsInput, TransitionIssueInput};
+use super::super::models::{SearchIssuesInput, GetIssueInput, GetTransitionsInput, TransitionIssueInput, AddCommentInput};
 
 pub async fn create_issue_handler(
     input: CreateIssueInput,
@@ -453,4 +453,82 @@ pub async fn transition_issue_handler(
         "success": true,
         "message": format!("Issue {} transitioned successfully", input.issue_key)
     })))
+}
+
+pub async fn add_comment_handler(
+    input: AddCommentInput,
+    ctx: &JiraCtx,
+) -> Result<CallToolResult, rmcp::ErrorData> {
+    tracing::info!(
+        target: "mcp",
+        tool = "add_comment",
+        issue_key = %input.issue_key,
+        "Adding comment to Jira issue"
+    );
+
+    let visibility = match (input.visibility_type, input.visibility_value) {
+        (Some(vis_type), Some(vis_value)) => Some(jira_client::api::issues::CommentVisibility {
+            visibility_type: vis_type,
+            value: vis_value,
+        }),
+        _ => None,
+    };
+
+    let response = ctx
+        .client
+        .add_comment(&input.issue_key, &input.body, visibility, &ctx.auth)
+        .await
+        .map_err(|e| {
+            tracing::error!(
+                target: "mcp",
+                tool = "add_comment",
+                error = %e,
+                issue_key = %input.issue_key,
+                "Failed to add comment"
+            );
+
+            if let Some(jira_client::error::JiraError::ApiError { status_code, response }) = e.downcast_ref::<jira_client::error::JiraError>() {
+                let error_message = extract_error_message(response);
+
+                return rmcp::ErrorData::internal_error(
+                    format!("Jira API Error ({}): {}", status_code, error_message),
+                    Some(serde_json::json!({
+                        "issue_key": input.issue_key,
+                        "status_code": status_code,
+                        "jira_response": response
+                    })),
+                );
+            }
+
+            rmcp::ErrorData::internal_error(
+                format!("Failed to add comment to {}: {}", input.issue_key, e),
+                None
+            )
+        })?;
+
+    // Extract useful info from response
+    let comment_id = response.get("id").and_then(|v| v.as_str()).unwrap_or("");
+    let author_name = response
+        .get("author")
+        .and_then(|a| a.get("displayName"))
+        .and_then(|n| n.as_str())
+        .unwrap_or("");
+    let created = response.get("created").and_then(|v| v.as_str()).unwrap_or("");
+
+    tracing::info!(
+        target: "mcp",
+        tool = "add_comment",
+        issue_key = %input.issue_key,
+        comment_id = %comment_id,
+        "Comment added successfully"
+    );
+
+    Ok(CallToolResult::structured(
+        serde_json::json!({
+            "id": comment_id,
+            "issue_key": input.issue_key,
+            "author": author_name,
+            "created": created
+        }),
+    ))
 }

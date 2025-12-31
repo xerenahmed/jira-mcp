@@ -84,6 +84,16 @@ pub struct TransitionIssueInput {
     pub comment: Option<String>,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct AddCommentInput {
+    pub issue_key: String,
+    pub body: String,
+    #[serde(default)]
+    pub visibility_type: Option<String>,  // "role" or "group"
+    #[serde(default)]
+    pub visibility_value: Option<String>, // role/group name
+}
+
 pub fn default_limit() -> usize {
     20
 }
