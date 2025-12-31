@@ -539,6 +539,28 @@ impl ApiClient {
         Ok(())
     }
 
+    pub async fn add_watcher(
+        &self,
+        issue_key: &str,
+        account_id: &str,
+        auth: &Auth,
+    ) -> Result<()> {
+        tracing::info!(target: "jira", op = "add_watcher", issue_key = %issue_key, account_id = %account_id);
+
+        // Note: The body is just the account ID as a JSON string, not an object
+        let body = serde_json::Value::String(account_id.to_string());
+
+        self.make_request(
+            reqwest::Method::POST,
+            &format!("/rest/api/3/issue/{}/watchers", issue_key),
+            auth,
+            None,
+            Some(body),
+        ).await?;
+
+        Ok(())
+    }
+
     pub async fn get_comments(
         &self,
         issue_key: &str,

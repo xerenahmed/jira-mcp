@@ -118,6 +118,13 @@ pub struct AssignIssueInput {
     pub account_id: Option<String>,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct AddWatcherInput {
+    pub issue_key: String,
+    /// Account ID of the user to add as a watcher
+    pub account_id: String,
+}
+
 pub fn default_limit() -> usize {
     20
 }
