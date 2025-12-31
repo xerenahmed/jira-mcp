@@ -343,12 +343,47 @@ pub async fn get_transitions_handler(
             )
         })?;
 
+    let transitions: Vec<serde_json::Value> = result
+        .get("transitions")
+        .and_then(|t| t.as_array())
+        .map(|arr| {
+            arr.iter()
+                .map(|t| {
+                    let id = t.get("id").and_then(|v| v.as_str()).unwrap_or("");
+                    let name = t.get("name").and_then(|v| v.as_str()).unwrap_or("");
+                    let to_name = t
+                        .get("to")
+                        .and_then(|to| to.get("name"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
+                    let category = t
+                        .get("to")
+                        .and_then(|to| to.get("statusCategory"))
+                        .and_then(|sc| sc.get("name"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
+
+                    serde_json::json!({
+                        "id": id,
+                        "name": name,
+                        "to": to_name,
+                        "category": category
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
     tracing::info!(
         target: "mcp",
         tool = "get_transitions",
         issue_key = %input.issue_key,
+        count = transitions.len(),
         "Transitions retrieved successfully"
     );
 
-    Ok(CallToolResult::structured(result))
+    Ok(CallToolResult::structured(serde_json::json!({
+        "issue_key": input.issue_key,
+        "transitions": transitions
+    })))
 }
