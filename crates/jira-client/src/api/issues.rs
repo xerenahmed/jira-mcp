@@ -584,6 +584,44 @@ impl ApiClient {
         Ok(())
     }
 
+    pub async fn link_issues(
+        &self,
+        inward_issue_key: &str,
+        outward_issue_key: &str,
+        link_type: &str,
+        auth: &Auth,
+    ) -> Result<()> {
+        tracing::info!(
+            target: "jira",
+            op = "link_issues",
+            inward = %inward_issue_key,
+            outward = %outward_issue_key,
+            link_type = %link_type
+        );
+
+        let body = serde_json::json!({
+            "type": {
+                "name": link_type
+            },
+            "inwardIssue": {
+                "key": inward_issue_key
+            },
+            "outwardIssue": {
+                "key": outward_issue_key
+            }
+        });
+
+        self.make_request(
+            reqwest::Method::POST,
+            "/rest/api/3/issueLink",
+            auth,
+            None,
+            Some(body),
+        ).await?;
+
+        Ok(())
+    }
+
     pub async fn get_comments(
         &self,
         issue_key: &str,

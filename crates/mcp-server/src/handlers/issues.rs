@@ -7,7 +7,7 @@ use rmcp::model::CallToolResult;
 use super::error_utils::{extract_error_message, get_jql_suggestions, get_create_suggestions, get_update_suggestions};
 use super::super::context::JiraCtx;
 use super::super::errors::log_err;
-use super::super::models::{SearchIssuesInput, GetIssueInput, GetTransitionsInput, TransitionIssueInput, AddCommentInput, GetCommentsInput, AssignIssueInput, AddWatcherInput, RemoveWatcherInput};
+use super::super::models::{SearchIssuesInput, GetIssueInput, GetTransitionsInput, TransitionIssueInput, AddCommentInput, GetCommentsInput, AssignIssueInput, AddWatcherInput, RemoveWatcherInput, LinkIssuesInput};
 use jira_client::utils::adf_collect_text;
 
 pub async fn create_issue_handler(
@@ -830,6 +830,84 @@ pub async fn remove_watcher_handler(
             "issue_key": input.issue_key,
             "account_id": input.account_id,
             "message": format!("Successfully removed watcher {} from issue {}", input.account_id, input.issue_key)
+        }),
+    ))
+}
+
+pub async fn link_issues_handler(
+    input: LinkIssuesInput,
+    ctx: &JiraCtx,
+) -> Result<CallToolResult, rmcp::ErrorData> {
+    tracing::info!(
+        target: "mcp",
+        tool = "link_issues",
+        inward_issue_key = %input.inward_issue_key,
+        outward_issue_key = %input.outward_issue_key,
+        link_type = %input.link_type,
+        "Creating issue link"
+    );
+
+    ctx.client
+        .link_issues(
+            &input.inward_issue_key,
+            &input.outward_issue_key,
+            &input.link_type,
+            &ctx.auth,
+        )
+        .await
+        .map_err(|e| {
+            tracing::error!(
+                target: "mcp",
+                tool = "link_issues",
+                error = %e,
+                inward_issue_key = %input.inward_issue_key,
+                outward_issue_key = %input.outward_issue_key,
+                link_type = %input.link_type,
+                "Failed to create issue link"
+            );
+
+            if let Some(jira_client::error::JiraError::ApiError { status_code, response }) = e.downcast_ref::<jira_client::error::JiraError>() {
+                let error_message = extract_error_message(response);
+
+                return rmcp::ErrorData::internal_error(
+                    format!("Jira API Error ({}): {}", status_code, error_message),
+                    Some(serde_json::json!({
+                        "inward_issue_key": input.inward_issue_key,
+                        "outward_issue_key": input.outward_issue_key,
+                        "link_type": input.link_type,
+                        "status_code": status_code,
+                        "jira_response": response
+                    })),
+                );
+            }
+
+            rmcp::ErrorData::internal_error(
+                format!("Failed to create issue link: {}", e),
+                None
+            )
+        })?;
+
+    tracing::info!(
+        target: "mcp",
+        tool = "link_issues",
+        inward_issue_key = %input.inward_issue_key,
+        outward_issue_key = %input.outward_issue_key,
+        link_type = %input.link_type,
+        "Issue link created successfully"
+    );
+
+    Ok(CallToolResult::structured(
+        serde_json::json!({
+            "success": true,
+            "message": format!(
+                "Successfully created '{}' link: {} -> {}",
+                input.link_type,
+                input.inward_issue_key,
+                input.outward_issue_key
+            ),
+            "inward_issue_key": input.inward_issue_key,
+            "outward_issue_key": input.outward_issue_key,
+            "link_type": input.link_type
         }),
     ))
 }

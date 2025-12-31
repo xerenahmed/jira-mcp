@@ -188,6 +188,15 @@ impl JiraClient {
         self.api_client.remove_watcher(issue_key, account_id, auth).await
     }
 
+    pub async fn link_issues(
+        &self,
+        inward_issue_key: &str,
+        outward_issue_key: &str,
+        link_type: &str,
+        auth: &Auth,
+    ) -> Result<()> {
+        self.api_client.link_issues(inward_issue_key, outward_issue_key, link_type, auth).await
+    }
 
     pub async fn get_board_configuration(
         &self,

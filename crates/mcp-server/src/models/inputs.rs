@@ -132,6 +132,16 @@ pub struct RemoveWatcherInput {
     pub account_id: String,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct LinkIssuesInput {
+    /// The issue key that is the inward (source) of the link
+    pub inward_issue_key: String,
+    /// The issue key that is the outward (target) of the link
+    pub outward_issue_key: String,
+    /// The link type name (e.g., "Blocks", "Relates", "Duplicates", "Clones")
+    pub link_type: String,
+}
+
 pub fn default_limit() -> usize {
     20
 }
