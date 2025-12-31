@@ -164,6 +164,16 @@ impl JiraAssistantServer {
         let ctx = jira_ctx()?;
         handlers::issues::add_comment_handler(input, &ctx).await
     }
+
+    #[tool(description = "Get comments from a Jira issue")]
+    async fn get_comments(
+        &self,
+        p: Parameters<GetCommentsInput>,
+    ) -> Result<CallToolResult, rmcp::ErrorData> {
+        let Parameters(input) = p;
+        let ctx = jira_ctx()?;
+        handlers::issues::get_comments_handler(input, &ctx).await
+    }
 }
 
 #[tool_handler]
@@ -173,7 +183,7 @@ impl ServerHandler for JiraAssistantServer {
             protocol_version: ProtocolVersion::V_2025_06_18,
             capabilities: ServerCapabilities::builder().enable_tools().build(),
             server_info: Implementation::from_build_env(),
-            instructions: Some("Jira Assistant tools: create_issue, update_issue, search_issues, list_fields, get_field_details, list_issue_types, list_boards, get_issue, get_user_info, list_projects, search_users, get_transitions, transition_issue, add_comment".into()),
+            instructions: Some("Jira Assistant tools: create_issue, update_issue, search_issues, list_fields, get_field_details, list_issue_types, list_boards, get_issue, get_user_info, list_projects, search_users, get_transitions, transition_issue, add_comment, get_comments".into()),
         }
     }
 }

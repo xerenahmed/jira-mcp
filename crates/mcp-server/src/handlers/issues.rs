@@ -7,7 +7,8 @@ use rmcp::model::CallToolResult;
 use super::error_utils::{extract_error_message, get_jql_suggestions, get_create_suggestions, get_update_suggestions};
 use super::super::context::JiraCtx;
 use super::super::errors::log_err;
-use super::super::models::{SearchIssuesInput, GetIssueInput, GetTransitionsInput, TransitionIssueInput, AddCommentInput};
+use super::super::models::{SearchIssuesInput, GetIssueInput, GetTransitionsInput, TransitionIssueInput, AddCommentInput, GetCommentsInput};
+use jira_client::utils::adf_collect_text;
 
 pub async fn create_issue_handler(
     input: CreateIssueInput,
@@ -531,4 +532,112 @@ pub async fn add_comment_handler(
             "created": created
         }),
     ))
+}
+
+/// Convert ADF body to plain text
+fn adf_to_plain_text(adf: &serde_json::Value) -> String {
+    let mut result = String::new();
+    adf_collect_text(adf, &mut result);
+    result.trim().to_string()
+}
+
+pub async fn get_comments_handler(
+    input: GetCommentsInput,
+    ctx: &JiraCtx,
+) -> Result<CallToolResult, rmcp::ErrorData> {
+    tracing::info!(
+        target: "mcp",
+        tool = "get_comments",
+        issue_key = %input.issue_key,
+        max_results = ?input.max_results,
+        order_by = ?input.order_by,
+        "Getting comments for issue"
+    );
+
+    let response = ctx
+        .client
+        .get_comments(
+            &input.issue_key,
+            input.max_results,
+            input.order_by.as_deref(),
+            &ctx.auth,
+        )
+        .await
+        .map_err(|e| {
+            tracing::error!(
+                target: "mcp",
+                tool = "get_comments",
+                error = %e,
+                issue_key = %input.issue_key,
+                "Failed to get comments"
+            );
+
+            if let Some(jira_client::error::JiraError::ApiError { status_code, response }) = e.downcast_ref::<jira_client::error::JiraError>() {
+                let error_message = extract_error_message(response);
+
+                return rmcp::ErrorData::internal_error(
+                    format!("Jira API Error ({}): {}", status_code, error_message),
+                    Some(serde_json::json!({
+                        "issue_key": input.issue_key,
+                        "status_code": status_code,
+                        "jira_response": response
+                    })),
+                );
+            }
+
+            rmcp::ErrorData::internal_error(
+                format!("Failed to get comments for {}: {}", input.issue_key, e),
+                None
+            )
+        })?;
+
+    // Extract total count
+    let total = response.get("total").and_then(|t| t.as_u64()).unwrap_or(0);
+
+    // Process comments to extract relevant fields with plain text body
+    let comments: Vec<serde_json::Value> = response
+        .get("comments")
+        .and_then(|c| c.as_array())
+        .map(|arr| {
+            arr.iter()
+                .map(|comment| {
+                    let id = comment.get("id").and_then(|i| i.as_str()).unwrap_or("");
+                    let author = comment
+                        .get("author")
+                        .and_then(|a| a.get("displayName"))
+                        .and_then(|n| n.as_str())
+                        .unwrap_or("Unknown");
+                    let body = comment
+                        .get("body")
+                        .map(|b| adf_to_plain_text(b))
+                        .unwrap_or_default();
+                    let created = comment.get("created").and_then(|c| c.as_str()).unwrap_or("");
+                    let updated = comment.get("updated").and_then(|u| u.as_str()).unwrap_or("");
+
+                    serde_json::json!({
+                        "id": id,
+                        "author": author,
+                        "body": body,
+                        "created": created,
+                        "updated": updated
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    tracing::info!(
+        target: "mcp",
+        tool = "get_comments",
+        issue_key = %input.issue_key,
+        total = total,
+        returned = comments.len(),
+        "Got comments successfully"
+    );
+
+    Ok(CallToolResult::structured(serde_json::json!({
+        "issue_key": input.issue_key,
+        "total": total,
+        "comments": comments
+    })))
 }
