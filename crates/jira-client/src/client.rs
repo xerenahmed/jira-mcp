@@ -140,6 +140,16 @@ impl JiraClient {
         self.api_client.get_transitions(issue_key, expand, auth).await
     }
 
+    pub async fn transition_issue(
+        &self,
+        issue_key: &str,
+        transition_id: &str,
+        fields: Option<&serde_json::Value>,
+        comment: Option<&str>,
+        auth: &Auth,
+    ) -> Result<()> {
+        self.api_client.transition_issue(issue_key, transition_id, fields, comment, auth).await
+    }
 
     pub async fn get_board_configuration(
         &self,

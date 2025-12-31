@@ -433,6 +433,61 @@ impl ApiClient {
         ).await
     }
 
+    pub async fn transition_issue(
+        &self,
+        issue_key: &str,
+        transition_id: &str,
+        fields: Option<&serde_json::Value>,
+        comment: Option<&str>,
+        auth: &Auth,
+    ) -> Result<()> {
+        tracing::info!(target: "jira", op = "transition_issue", issue_key = %issue_key, transition_id = %transition_id);
+
+        let mut payload = serde_json::json!({
+            "transition": {
+                "id": transition_id
+            }
+        });
+
+        // Add optional fields
+        if let Some(fields_val) = fields {
+            if let Some(obj) = payload.as_object_mut() {
+                obj.insert("fields".to_string(), fields_val.clone());
+            }
+        }
+
+        // Add optional comment in ADF format
+        if let Some(comment_text) = comment {
+            let comment_adf = serde_json::json!({
+                "type": "doc",
+                "version": 1,
+                "content": [{
+                    "type": "paragraph",
+                    "content": [{
+                        "type": "text",
+                        "text": comment_text
+                    }]
+                }]
+            });
+
+            if let Some(obj) = payload.as_object_mut() {
+                obj.insert("update".to_string(), serde_json::json!({
+                    "comment": [{ "add": { "body": comment_adf } }]
+                }));
+            }
+        }
+
+        self.make_request(
+            reqwest::Method::POST,
+            &format!("/rest/api/3/issue/{}/transitions", issue_key),
+            auth,
+            None,
+            Some(payload),
+        ).await?;
+
+        Ok(())
+    }
+
     pub async fn list_issue_types(
         &self,
         project_key: Option<&str>,
