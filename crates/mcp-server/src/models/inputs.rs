@@ -64,6 +64,15 @@ pub struct SearchUsersInput {
     pub assignable_only: bool,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct UpdateCommentInput {
+    pub issue_key: String,
+    /// The ID of the comment to update (can be obtained from get_comments)
+    pub comment_id: String,
+    /// The new comment body text (plain text, will be converted to ADF)
+    pub body: String,
+}
+
 pub fn default_limit() -> usize {
     20
 }

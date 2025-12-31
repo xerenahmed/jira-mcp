@@ -7,7 +7,7 @@ use rmcp::{
     transport::stdio,
     ServerHandler, ServiceExt,
 };
-use super::models::*;
+use super::models::{SearchIssuesInput, ListFieldsInput, GetIssueInput, ListIssueTypesInput, GetFieldDetailsInput, ListBoardsInput, ListProjectsInput, SearchUsersInput, UpdateCommentInput};
 use super::context::jira_ctx;
 use super::{handlers};
 use jira_core::UpdateIssueInput;
@@ -134,6 +134,16 @@ impl JiraAssistantServer {
         let ctx = jira_ctx()?;
         handlers::users::search_users_handler(input, &ctx).await
     }
+
+    #[tool(description = "Update an existing comment on an issue")]
+    async fn update_comment(
+        &self,
+        p: Parameters<UpdateCommentInput>,
+    ) -> Result<CallToolResult, rmcp::ErrorData> {
+        let Parameters(input) = p;
+        let ctx = jira_ctx()?;
+        handlers::issues::update_comment_handler(input, &ctx).await
+    }
 }
 
 #[tool_handler]
@@ -143,7 +153,7 @@ impl ServerHandler for JiraAssistantServer {
             protocol_version: ProtocolVersion::V_2025_06_18,
             capabilities: ServerCapabilities::builder().enable_tools().build(),
             server_info: Implementation::from_build_env(),
-            instructions: Some("Jira Assistant tools: create_issue, update_issue, search_issues, list_fields, get_field_details, list_issue_types, list_boards, get_issue, get_user_info, list_projects, search_users".into()),
+            instructions: Some("Jira Assistant tools: create_issue, update_issue, search_issues, list_fields, get_field_details, list_issue_types, list_boards, get_issue, get_user_info, list_projects, search_users, update_comment".into()),
         }
     }
 }

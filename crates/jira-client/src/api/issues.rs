@@ -408,6 +408,43 @@ impl ApiClient {
         }
         Ok(issues)
     }
+    pub async fn update_comment(
+        &self,
+        issue_key: &str,
+        comment_id: &str,
+        body: &str,
+        auth: &Auth,
+    ) -> Result<Value> {
+        tracing::info!(target: "jira", op = "update_comment", issue_key = %issue_key, comment_id = %comment_id);
+
+        // Convert plain text to ADF format
+        let adf_body = serde_json::json!({
+            "body": {
+                "type": "doc",
+                "version": 1,
+                "content": [
+                    {
+                        "type": "paragraph",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": body
+                            }
+                        ]
+                    }
+                ]
+            }
+        });
+
+        self.make_request(
+            reqwest::Method::PUT,
+            &format!("/rest/api/3/issue/{}/comment/{}", issue_key, comment_id),
+            auth,
+            None,
+            Some(adf_body),
+        ).await
+    }
+
     pub async fn list_issue_types(
         &self,
         project_key: Option<&str>,

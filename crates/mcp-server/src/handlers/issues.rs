@@ -7,7 +7,7 @@ use rmcp::model::CallToolResult;
 use super::error_utils::{extract_error_message, get_jql_suggestions, get_create_suggestions, get_update_suggestions};
 use super::super::context::JiraCtx;
 use super::super::errors::log_err;
-use super::super::models::{SearchIssuesInput, GetIssueInput};
+use super::super::models::{SearchIssuesInput, GetIssueInput, UpdateCommentInput};
 
 pub async fn create_issue_handler(
     input: CreateIssueInput,
@@ -293,4 +293,67 @@ fn filter_issue_fields_for_board(
             obj.remove(&k);
         }
     }
+}
+
+pub async fn update_comment_handler(
+    input: UpdateCommentInput,
+    ctx: &JiraCtx,
+) -> Result<CallToolResult, rmcp::ErrorData> {
+    tracing::info!(
+        target: "mcp",
+        tool = "update_comment",
+        issue_key = %input.issue_key,
+        comment_id = %input.comment_id,
+        "Updating comment"
+    );
+
+    ctx.client
+        .update_comment(&input.issue_key, &input.comment_id, &input.body, &ctx.auth)
+        .await
+        .map_err(|e| {
+            tracing::error!(
+                target: "mcp",
+                tool = "update_comment",
+                error = %e,
+                issue_key = %input.issue_key,
+                comment_id = %input.comment_id,
+                "Failed to update comment"
+            );
+
+            if let Some(jira_client::error::JiraError::ApiError { status_code, response }) = e.downcast_ref::<jira_client::error::JiraError>() {
+                let error_message = extract_error_message(response);
+
+                return rmcp::ErrorData::internal_error(
+                    format!("Jira API Error ({}): {}", status_code, error_message),
+                    Some(serde_json::json!({
+                        "issue_key": input.issue_key,
+                        "comment_id": input.comment_id,
+                        "status_code": status_code,
+                        "jira_response": response
+                    })),
+                );
+            }
+
+            rmcp::ErrorData::internal_error(
+                format!("Failed to update comment {} on issue {}: {}", input.comment_id, input.issue_key, e),
+                None
+            )
+        })?;
+
+    tracing::info!(
+        target: "mcp",
+        tool = "update_comment",
+        issue_key = %input.issue_key,
+        comment_id = %input.comment_id,
+        "Comment updated successfully"
+    );
+
+    Ok(CallToolResult::structured(
+        serde_json::json!({
+            "success": true,
+            "issue_key": input.issue_key,
+            "comment_id": input.comment_id,
+            "message": format!("Comment {} on issue {} updated successfully", input.comment_id, input.issue_key)
+        }),
+    ))
 }
