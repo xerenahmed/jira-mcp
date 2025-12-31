@@ -204,6 +204,16 @@ impl JiraAssistantServer {
         let ctx = jira_ctx()?;
         handlers::issues::add_watcher_handler(input, &ctx).await
     }
+
+    #[tool(description = "Remove a user as a watcher from an issue")]
+    async fn remove_watcher(
+        &self,
+        p: Parameters<RemoveWatcherInput>,
+    ) -> Result<CallToolResult, rmcp::ErrorData> {
+        let Parameters(input) = p;
+        let ctx = jira_ctx()?;
+        handlers::issues::remove_watcher_handler(input, &ctx).await
+    }
 }
 
 #[tool_handler]
@@ -213,7 +223,7 @@ impl ServerHandler for JiraAssistantServer {
             protocol_version: ProtocolVersion::V_2025_06_18,
             capabilities: ServerCapabilities::builder().enable_tools().build(),
             server_info: Implementation::from_build_env(),
-            instructions: Some("Jira Assistant tools: create_issue, update_issue, search_issues, list_fields, get_field_details, list_issue_types, list_boards, list_sprints, get_issue, get_user_info, list_projects, search_users, get_transitions, transition_issue, add_comment, get_comments, assign_issue, add_watcher".into()),
+            instructions: Some("Jira Assistant tools: create_issue, update_issue, search_issues, list_fields, get_field_details, list_issue_types, list_boards, list_sprints, get_issue, get_user_info, list_projects, search_users, get_transitions, transition_issue, add_comment, get_comments, assign_issue, add_watcher, remove_watcher".into()),
         }
     }
 }

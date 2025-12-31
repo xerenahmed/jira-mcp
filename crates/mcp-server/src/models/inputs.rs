@@ -125,6 +125,13 @@ pub struct AddWatcherInput {
     pub account_id: String,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct RemoveWatcherInput {
+    pub issue_key: String,
+    /// Account ID of the user to remove as a watcher
+    pub account_id: String,
+}
+
 pub fn default_limit() -> usize {
     20
 }
