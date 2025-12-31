@@ -2,7 +2,7 @@ use anyhow::Result;
 use serde_json::Value;
 
 use crate::auth::Auth;
-use crate::models::{Board, Issue};
+use crate::models::{Board, Issue, Sprint};
 use super::ApiClient;
 
 impl ApiClient {
@@ -141,5 +141,58 @@ impl ApiClient {
         }
 
         Ok(all_boards)
+    }
+
+    pub async fn list_sprints(
+        &self,
+        board_id: u64,
+        state: Option<&str>,
+        auth: &Auth,
+    ) -> Result<Vec<Sprint>> {
+        tracing::info!(target: "jira", op = "list_sprints", board_id = board_id, state = ?state);
+
+        let mut all_sprints = Vec::new();
+        let mut start_at = 0usize;
+        const MAX_RESULTS: usize = 50;
+
+        loop {
+            let mut query_params = vec![
+                ("maxResults".into(), MAX_RESULTS.to_string()),
+                ("startAt".into(), start_at.to_string()),
+            ];
+
+            if let Some(s) = state {
+                query_params.push(("state".into(), s.to_string()));
+            }
+
+            let v = self.make_request(
+                reqwest::Method::GET,
+                &format!("/rest/agile/1.0/board/{}/sprint", board_id),
+                auth,
+                Some(query_params),
+                None,
+            ).await?;
+
+            if let Some(values) = v.get("values").and_then(|v| v.as_array()) {
+                for sprint_val in values {
+                    if let Ok(sprint) = serde_json::from_value::<Sprint>(sprint_val.clone()) {
+                        all_sprints.push(sprint);
+                    }
+                }
+
+                let total = v.get("total").and_then(|t| t.as_u64()).unwrap_or(0) as usize;
+                let fetched = all_sprints.len();
+
+                if fetched >= total || values.is_empty() {
+                    break;
+                }
+
+                start_at += MAX_RESULTS;
+            } else {
+                break;
+            }
+        }
+
+        Ok(all_sprints)
     }
 }

@@ -103,6 +103,13 @@ pub struct GetCommentsInput {
     pub order_by: Option<String>,  // e.g., "-created" for newest first
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct ListSprintsInput {
+    pub board_id: u64,
+    #[serde(default)]
+    pub state: Option<String>,  // "future", "active", "closed"
+}
+
 pub fn default_limit() -> usize {
     20
 }
