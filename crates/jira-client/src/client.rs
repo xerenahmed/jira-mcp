@@ -151,6 +151,17 @@ impl JiraClient {
         self.api_client.transition_issue(issue_key, transition_id, fields, comment, auth).await
     }
 
+    pub async fn get_comments(
+        &self,
+        issue_key: &str,
+        max_results: Option<u32>,
+        order_by: Option<&str>,
+        auth: &Auth,
+    ) -> Result<serde_json::Value> {
+        self.api_client.get_comments(issue_key, max_results, order_by, auth).await
+    }
+
+
     pub async fn get_board_configuration(
         &self,
         board_id: u64,

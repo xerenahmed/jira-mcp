@@ -94,6 +94,15 @@ pub struct AddCommentInput {
     pub visibility_value: Option<String>, // role/group name
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct GetCommentsInput {
+    pub issue_key: String,
+    #[serde(default)]
+    pub max_results: Option<u32>,
+    #[serde(default)]
+    pub order_by: Option<String>,  // e.g., "-created" for newest first
+}
+
 pub fn default_limit() -> usize {
     20
 }

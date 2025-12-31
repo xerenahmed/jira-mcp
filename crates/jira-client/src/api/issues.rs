@@ -516,6 +516,40 @@ impl ApiClient {
         Ok(())
     }
 
+    pub async fn get_comments(
+        &self,
+        issue_key: &str,
+        max_results: Option<u32>,
+        order_by: Option<&str>,
+        auth: &Auth,
+    ) -> Result<Value> {
+        tracing::info!(target: "jira", op = "get_comments", issue_key = %issue_key, max_results = ?max_results, order_by = ?order_by);
+
+        let mut query_params: Vec<(String, String)> = Vec::new();
+
+        if let Some(max) = max_results {
+            query_params.push(("maxResults".into(), max.to_string()));
+        }
+
+        // Default to newest first if not specified
+        let order = order_by.unwrap_or("-created");
+        query_params.push(("orderBy".into(), order.to_string()));
+
+        let query = if query_params.is_empty() {
+            None
+        } else {
+            Some(query_params)
+        };
+
+        self.make_request(
+            reqwest::Method::GET,
+            &format!("/rest/api/3/issue/{}/comment", issue_key),
+            auth,
+            query,
+            None,
+        ).await
+    }
+
     pub async fn list_issue_types(
         &self,
         project_key: Option<&str>,
