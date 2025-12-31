@@ -516,6 +516,29 @@ impl ApiClient {
         Ok(())
     }
 
+    pub async fn assign_issue(
+        &self,
+        issue_key: &str,
+        account_id: Option<&str>,
+        auth: &Auth,
+    ) -> Result<()> {
+        tracing::info!(target: "jira", op = "assign_issue", issue_key = %issue_key, account_id = ?account_id);
+
+        let body = serde_json::json!({
+            "accountId": account_id
+        });
+
+        self.make_request(
+            reqwest::Method::PUT,
+            &format!("/rest/api/3/issue/{}/assignee", issue_key),
+            auth,
+            None,
+            Some(body),
+        ).await?;
+
+        Ok(())
+    }
+
     pub async fn get_comments(
         &self,
         issue_key: &str,

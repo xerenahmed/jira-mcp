@@ -7,7 +7,7 @@ use rmcp::model::CallToolResult;
 use super::error_utils::{extract_error_message, get_jql_suggestions, get_create_suggestions, get_update_suggestions};
 use super::super::context::JiraCtx;
 use super::super::errors::log_err;
-use super::super::models::{SearchIssuesInput, GetIssueInput, GetTransitionsInput, TransitionIssueInput, AddCommentInput, GetCommentsInput};
+use super::super::models::{SearchIssuesInput, GetIssueInput, GetTransitionsInput, TransitionIssueInput, AddCommentInput, GetCommentsInput, AssignIssueInput};
 use jira_client::utils::adf_collect_text;
 
 pub async fn create_issue_handler(
@@ -639,5 +639,71 @@ pub async fn get_comments_handler(
         "issue_key": input.issue_key,
         "total": total,
         "comments": comments
+    })))
+}
+
+pub async fn assign_issue_handler(
+    input: AssignIssueInput,
+    ctx: &JiraCtx,
+) -> Result<CallToolResult, rmcp::ErrorData> {
+    let action = if input.account_id.is_some() { "Assigning" } else { "Unassigning" };
+    tracing::info!(
+        target: "mcp",
+        tool = "assign_issue",
+        issue_key = %input.issue_key,
+        account_id = ?input.account_id,
+        "{} user for issue", action
+    );
+
+    ctx.client
+        .assign_issue(
+            &input.issue_key,
+            input.account_id.as_deref(),
+            &ctx.auth,
+        )
+        .await
+        .map_err(|e| {
+            tracing::error!(
+                target: "mcp",
+                tool = "assign_issue",
+                error = %e,
+                issue_key = %input.issue_key,
+                "Failed to assign issue"
+            );
+
+            if let Some(jira_client::error::JiraError::ApiError { status_code, response }) = e.downcast_ref::<jira_client::error::JiraError>() {
+                let error_message = extract_error_message(response);
+
+                return rmcp::ErrorData::internal_error(
+                    format!("Jira API Error ({}): {}", status_code, error_message),
+                    Some(serde_json::json!({
+                        "issue_key": input.issue_key,
+                        "account_id": input.account_id,
+                        "status_code": status_code,
+                        "jira_response": response
+                    })),
+                );
+            }
+
+            rmcp::ErrorData::internal_error(
+                format!("Failed to assign issue {}: {}", input.issue_key, e),
+                None
+            )
+        })?;
+
+    let status = if input.account_id.is_some() { "assigned" } else { "unassigned" };
+    tracing::info!(
+        target: "mcp",
+        tool = "assign_issue",
+        issue_key = %input.issue_key,
+        status = status,
+        "Issue {} successfully", status
+    );
+
+    Ok(CallToolResult::structured(serde_json::json!({
+        "success": true,
+        "issue_key": input.issue_key,
+        "status": status,
+        "account_id": input.account_id
     })))
 }
