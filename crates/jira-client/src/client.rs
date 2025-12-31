@@ -191,6 +191,15 @@ impl JiraClient {
         self.api_client.list_boards(project_key, auth).await
     }
 
+    pub async fn list_sprints(
+        &self,
+        board_id: u64,
+        state: Option<&str>,
+        auth: &Auth,
+    ) -> Result<Vec<Sprint>> {
+        self.api_client.list_sprints(board_id, state, auth).await
+    }
+
 
     pub async fn get_myself(&self, auth: &Auth) -> Result<UserInfo> {
         self.api_client.get_myself(auth).await

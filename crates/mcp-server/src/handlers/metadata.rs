@@ -3,7 +3,7 @@ use rmcp::model::CallToolResult;
 
 use super::super::context::JiraCtx;
 use super::super::errors::log_err;
-use super::super::models::ListIssueTypesInput;
+use super::super::models::{ListIssueTypesInput, ListSprintsInput};
 
 pub async fn get_user_info_handler(ctx: &JiraCtx) -> Result<CallToolResult, rmcp::ErrorData> {
     tracing::info!(target: "mcp", tool = "get_user_info");
@@ -64,6 +64,37 @@ pub async fn list_boards_handler(
             "total_count": total_count,
             "fully_paginated": true,
             "project_key": project_key
+        }),
+    ))
+}
+
+pub async fn list_sprints_handler(
+    input: ListSprintsInput,
+    ctx: &JiraCtx,
+) -> Result<CallToolResult, rmcp::ErrorData> {
+    tracing::info!(target: "mcp", tool = "list_sprints", board_id = input.board_id, state = ?input.state);
+
+    let sprints = ctx
+        .client
+        .list_sprints(input.board_id, input.state.as_deref(), &ctx.auth)
+        .await
+        .map_err(|e| log_err("list_sprints", "jira_error", e.to_string()))?;
+
+    let total_count = sprints.len();
+
+    tracing::info!(
+        target: "mcp",
+        tool = "list_sprints",
+        board_id = input.board_id,
+        count = total_count,
+        "Sprints listed successfully"
+    );
+
+    Ok(CallToolResult::structured(
+        serde_json::json!({
+            "sprints": sprints,
+            "total_count": total_count,
+            "board_id": input.board_id
         }),
     ))
 }
