@@ -71,6 +71,19 @@ pub struct GetTransitionsInput {
     pub expand: Option<String>,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct TransitionIssueInput {
+    pub issue_key: String,
+    /// The transition ID (from get_transitions)
+    pub transition_id: String,
+    /// Optional fields to set during transition
+    #[serde(default)]
+    pub fields: Option<serde_json::Value>,
+    /// Optional comment to add (plain text, converted to ADF)
+    #[serde(default)]
+    pub comment: Option<String>,
+}
+
 pub fn default_limit() -> usize {
     20
 }
