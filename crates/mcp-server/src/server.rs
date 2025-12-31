@@ -234,6 +234,16 @@ impl JiraAssistantServer {
         let ctx = jira_ctx()?;
         handlers::metadata::move_to_sprint_handler(input, &ctx).await
     }
+
+    #[tool(description = "Get all watchers for an issue")]
+    async fn get_watchers(
+        &self,
+        p: Parameters<GetWatchersInput>,
+    ) -> Result<CallToolResult, rmcp::ErrorData> {
+        let Parameters(input) = p;
+        let ctx = jira_ctx()?;
+        handlers::issues::get_watchers_handler(input, &ctx).await
+    }
 }
 
 #[tool_handler]
@@ -243,7 +253,7 @@ impl ServerHandler for JiraAssistantServer {
             protocol_version: ProtocolVersion::V_2025_06_18,
             capabilities: ServerCapabilities::builder().enable_tools().build(),
             server_info: Implementation::from_build_env(),
-            instructions: Some("Jira Assistant tools: create_issue, update_issue, search_issues, list_fields, get_field_details, list_issue_types, list_boards, list_sprints, get_issue, get_user_info, list_projects, search_users, get_transitions, transition_issue, add_comment, get_comments, assign_issue, add_watcher, remove_watcher, link_issues, move_to_sprint".into()),
+            instructions: Some("Jira Assistant tools: create_issue, update_issue, search_issues, list_fields, get_field_details, list_issue_types, list_boards, list_sprints, get_issue, get_user_info, list_projects, search_users, get_transitions, transition_issue, add_comment, get_comments, assign_issue, add_watcher, remove_watcher, link_issues, move_to_sprint, get_watchers".into()),
         }
     }
 }

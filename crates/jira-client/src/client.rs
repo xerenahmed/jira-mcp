@@ -288,4 +288,12 @@ impl JiraClient {
     ) -> Result<()> {
         self.api_client.move_issues_to_sprint(sprint_id, issue_keys, auth).await
     }
+
+    pub async fn get_watchers(
+        &self,
+        issue_key: &str,
+        auth: &Auth,
+    ) -> Result<serde_json::Value> {
+        self.api_client.get_watchers(issue_key, auth).await
+    }
 }
