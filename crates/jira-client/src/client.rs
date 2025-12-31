@@ -357,4 +357,8 @@ impl JiraClient {
     ) -> Result<()> {
         self.api_client.delete_comment(issue_key, comment_id, auth).await
     }
+
+    pub async fn list_link_types(&self, auth: &Auth) -> Result<Vec<serde_json::Value>> {
+        self.api_client.list_link_types(auth).await
+    }
 }

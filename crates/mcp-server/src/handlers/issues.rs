@@ -1306,3 +1306,57 @@ pub async fn delete_comment_handler(
         }),
     ))
 }
+
+pub async fn list_link_types_handler(
+    ctx: &JiraCtx,
+) -> Result<CallToolResult, rmcp::ErrorData> {
+    tracing::info!(
+        target: "mcp",
+        tool = "list_link_types",
+        "Listing available issue link types"
+    );
+
+    let link_types = ctx
+        .client
+        .list_link_types(&ctx.auth)
+        .await
+        .map_err(|e| {
+            tracing::error!(
+                target: "mcp",
+                tool = "list_link_types",
+                error = %e,
+                "Failed to list link types"
+            );
+
+            if let Some(jira_client::error::JiraError::ApiError { status_code, response }) = e.downcast_ref::<jira_client::error::JiraError>() {
+                let error_message = extract_error_message(response);
+
+                return rmcp::ErrorData::internal_error(
+                    format!("Jira API Error ({}): {}", status_code, error_message),
+                    Some(serde_json::json!({
+                        "status_code": status_code,
+                        "jira_response": response
+                    })),
+                );
+            }
+
+            rmcp::ErrorData::internal_error(
+                format!("Failed to list link types: {}", e),
+                None
+            )
+        })?;
+
+    tracing::info!(
+        target: "mcp",
+        tool = "list_link_types",
+        count = link_types.len(),
+        "Link types listed successfully"
+    );
+
+    Ok(CallToolResult::structured(
+        serde_json::json!({
+            "link_types": link_types,
+            "count": link_types.len()
+        }),
+    ))
+}

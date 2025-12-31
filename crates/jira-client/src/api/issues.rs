@@ -766,6 +766,37 @@ impl ApiClient {
         Ok(())
     }
 
+    pub async fn list_link_types(&self, auth: &Auth) -> Result<Vec<Value>> {
+        tracing::info!(target: "jira", op = "list_link_types");
+
+        let response: Value = self.make_request(
+            reqwest::Method::GET,
+            "/rest/api/3/issueLinkType",
+            auth,
+            None,
+            None,
+        ).await?;
+
+        let link_types = response
+            .get("issueLinkTypes")
+            .and_then(|lt| lt.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .map(|lt| {
+                        serde_json::json!({
+                            "id": lt.get("id").and_then(|v| v.as_str()).unwrap_or(""),
+                            "name": lt.get("name").and_then(|v| v.as_str()).unwrap_or(""),
+                            "inward": lt.get("inward").and_then(|v| v.as_str()).unwrap_or(""),
+                            "outward": lt.get("outward").and_then(|v| v.as_str()).unwrap_or("")
+                        })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        Ok(link_types)
+    }
+
     pub async fn get_comments(
         &self,
         issue_key: &str,

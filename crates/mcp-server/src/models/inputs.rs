@@ -203,6 +203,9 @@ pub struct DeleteCommentInput {
     pub comment_id: String,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct ListLinkTypesInput {}
+
 pub fn default_limit() -> usize {
     20
 }
