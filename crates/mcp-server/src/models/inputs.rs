@@ -64,6 +64,11 @@ pub struct SearchUsersInput {
     pub assignable_only: bool,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct GetWatchersInput {
+    pub issue_key: String,
+}
+
 pub fn default_limit() -> usize {
     20
 }

@@ -408,6 +408,22 @@ impl ApiClient {
         }
         Ok(issues)
     }
+    pub async fn get_watchers(
+        &self,
+        issue_key: &str,
+        auth: &Auth,
+    ) -> Result<Value> {
+        tracing::info!(target: "jira", op = "get_watchers", issue_key = %issue_key);
+
+        self.make_request(
+            reqwest::Method::GET,
+            &format!("/rest/api/3/issue/{}/watchers", issue_key),
+            auth,
+            None,
+            None,
+        ).await
+    }
+
     pub async fn list_issue_types(
         &self,
         project_key: Option<&str>,
