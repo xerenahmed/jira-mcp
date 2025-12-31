@@ -64,6 +64,14 @@ pub struct SearchUsersInput {
     pub assignable_only: bool,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct MoveToSprintInput {
+    /// The sprint ID to move issues to
+    pub sprint_id: u64,
+    /// List of issue keys to move to the sprint
+    pub issue_keys: Vec<String>,
+}
+
 pub fn default_limit() -> usize {
     20
 }
