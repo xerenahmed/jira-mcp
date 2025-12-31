@@ -194,4 +194,12 @@ impl JiraClient {
     pub async fn list_projects_summary(&self, auth: &Auth) -> Result<Vec<ProjectSummary>> {
         self.api_client.list_projects_summary(auth).await
     }
+
+    pub async fn get_sprint(
+        &self,
+        sprint_id: u64,
+        auth: &Auth,
+    ) -> Result<Sprint> {
+        self.api_client.get_sprint(sprint_id, auth).await
+    }
 }

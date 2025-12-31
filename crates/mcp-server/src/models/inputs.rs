@@ -64,6 +64,12 @@ pub struct SearchUsersInput {
     pub assignable_only: bool,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct GetSprintInput {
+    /// The sprint ID to get details for
+    pub sprint_id: u64,
+}
+
 pub fn default_limit() -> usize {
     20
 }

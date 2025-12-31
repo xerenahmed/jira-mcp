@@ -2,7 +2,7 @@ use anyhow::Result;
 use serde_json::Value;
 
 use crate::auth::Auth;
-use crate::models::{Board, Issue};
+use crate::models::{Board, Issue, Sprint};
 use super::ApiClient;
 
 impl ApiClient {
@@ -141,5 +141,24 @@ impl ApiClient {
         }
 
         Ok(all_boards)
+    }
+
+    pub async fn get_sprint(
+        &self,
+        sprint_id: u64,
+        auth: &Auth,
+    ) -> Result<Sprint> {
+        tracing::info!(target: "jira", op = "get_sprint", sprint_id = sprint_id);
+
+        let response: Value = self.make_request(
+            reqwest::Method::GET,
+            &format!("/rest/agile/1.0/sprint/{}", sprint_id),
+            auth,
+            None,
+            None,
+        ).await?;
+
+        let sprint: Sprint = serde_json::from_value(response)?;
+        Ok(sprint)
     }
 }

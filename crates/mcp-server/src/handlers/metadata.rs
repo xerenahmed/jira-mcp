@@ -3,7 +3,7 @@ use rmcp::model::CallToolResult;
 
 use super::super::context::JiraCtx;
 use super::super::errors::log_err;
-use super::super::models::ListIssueTypesInput;
+use super::super::models::{ListIssueTypesInput, GetSprintInput};
 
 pub async fn get_user_info_handler(ctx: &JiraCtx) -> Result<CallToolResult, rmcp::ErrorData> {
     tracing::info!(target: "mcp", tool = "get_user_info");
@@ -65,5 +65,22 @@ pub async fn list_boards_handler(
             "fully_paginated": true,
             "project_key": project_key
         }),
+    ))
+}
+
+pub async fn get_sprint_handler(
+    input: GetSprintInput,
+    ctx: &JiraCtx,
+) -> Result<CallToolResult, rmcp::ErrorData> {
+    tracing::info!(target: "mcp", tool = "get_sprint", sprint_id = input.sprint_id);
+
+    let sprint = ctx
+        .client
+        .get_sprint(input.sprint_id, &ctx.auth)
+        .await
+        .map_err(|e| log_err("get_sprint", "jira_error", e.to_string()))?;
+
+    Ok(CallToolResult::structured(
+        serde_json::to_value(sprint).unwrap_or(serde_json::json!({})),
     ))
 }
