@@ -213,4 +213,14 @@ impl JiraClient {
     pub async fn list_projects_summary(&self, auth: &Auth) -> Result<Vec<ProjectSummary>> {
         self.api_client.list_projects_summary(auth).await
     }
+
+    pub async fn add_comment(
+        &self,
+        issue_key: &str,
+        body: &str,
+        visibility: Option<crate::api::issues::CommentVisibility>,
+        auth: &Auth,
+    ) -> Result<serde_json::Value> {
+        self.api_client.add_comment(issue_key, body, visibility, auth).await
+    }
 }
