@@ -131,6 +131,15 @@ impl JiraClient {
         self.api_client.list_issue_types(project_key, auth).await
     }
 
+    pub async fn remove_label(
+        &self,
+        issue_key: &str,
+        label: &str,
+        auth: &Auth,
+    ) -> Result<()> {
+        self.api_client.remove_label(issue_key, label, auth).await
+    }
+
 
     pub async fn get_board_configuration(
         &self,

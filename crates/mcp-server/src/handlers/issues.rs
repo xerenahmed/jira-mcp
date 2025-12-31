@@ -7,7 +7,7 @@ use rmcp::model::CallToolResult;
 use super::error_utils::{extract_error_message, get_jql_suggestions, get_create_suggestions, get_update_suggestions};
 use super::super::context::JiraCtx;
 use super::super::errors::log_err;
-use super::super::models::{SearchIssuesInput, GetIssueInput};
+use super::super::models::{SearchIssuesInput, GetIssueInput, RemoveLabelInput};
 
 pub async fn create_issue_handler(
     input: CreateIssueInput,
@@ -293,4 +293,66 @@ fn filter_issue_fields_for_board(
             obj.remove(&k);
         }
     }
+}
+
+pub async fn remove_label_handler(
+    input: RemoveLabelInput,
+    ctx: &JiraCtx,
+) -> Result<CallToolResult, rmcp::ErrorData> {
+    tracing::info!(
+        target: "mcp",
+        tool = "remove_label",
+        issue_key = %input.issue_key,
+        label = %input.label,
+        "Removing label from issue"
+    );
+
+    ctx.client
+        .remove_label(&input.issue_key, &input.label, &ctx.auth)
+        .await
+        .map_err(|e| {
+            tracing::error!(
+                target: "mcp",
+                tool = "remove_label",
+                error = %e,
+                issue_key = %input.issue_key,
+                label = %input.label,
+                "Failed to remove label"
+            );
+
+            if let Some(jira_client::error::JiraError::ApiError { status_code, response }) = e.downcast_ref::<jira_client::error::JiraError>() {
+                let error_message = extract_error_message(response);
+
+                return rmcp::ErrorData::internal_error(
+                    format!("Jira API Error ({}): {}", status_code, error_message),
+                    Some(serde_json::json!({
+                        "issue_key": input.issue_key,
+                        "label": input.label,
+                        "status_code": status_code,
+                        "jira_response": response
+                    })),
+                );
+            }
+
+            rmcp::ErrorData::internal_error(
+                format!("Failed to remove label '{}' from issue {}: {}", input.label, input.issue_key, e),
+                None
+            )
+        })?;
+
+    tracing::info!(
+        target: "mcp",
+        tool = "remove_label",
+        issue_key = %input.issue_key,
+        label = %input.label,
+        "Label removed successfully"
+    );
+
+    Ok(CallToolResult::structured(
+        serde_json::json!({
+            "success": true,
+            "issue_key": input.issue_key,
+            "removed_label": input.label
+        }),
+    ))
 }
