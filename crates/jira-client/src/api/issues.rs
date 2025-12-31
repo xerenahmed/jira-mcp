@@ -408,6 +408,25 @@ impl ApiClient {
         }
         Ok(issues)
     }
+    pub async fn delete_comment(
+        &self,
+        issue_key: &str,
+        comment_id: &str,
+        auth: &Auth,
+    ) -> Result<()> {
+        tracing::info!(target: "jira", op = "delete_comment", issue_key = %issue_key, comment_id = %comment_id);
+
+        self.make_request(
+            reqwest::Method::DELETE,
+            &format!("/rest/api/3/issue/{}/comment/{}", issue_key, comment_id),
+            auth,
+            None,
+            None,
+        ).await?;
+
+        Ok(())
+    }
+
     pub async fn list_issue_types(
         &self,
         project_key: Option<&str>,

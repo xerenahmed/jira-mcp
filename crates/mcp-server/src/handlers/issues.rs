@@ -7,7 +7,7 @@ use rmcp::model::CallToolResult;
 use super::error_utils::{extract_error_message, get_jql_suggestions, get_create_suggestions, get_update_suggestions};
 use super::super::context::JiraCtx;
 use super::super::errors::log_err;
-use super::super::models::{SearchIssuesInput, GetIssueInput};
+use super::super::models::{SearchIssuesInput, GetIssueInput, DeleteCommentInput};
 
 pub async fn create_issue_handler(
     input: CreateIssueInput,
@@ -293,4 +293,67 @@ fn filter_issue_fields_for_board(
             obj.remove(&k);
         }
     }
+}
+
+pub async fn delete_comment_handler(
+    input: DeleteCommentInput,
+    ctx: &JiraCtx,
+) -> Result<CallToolResult, rmcp::ErrorData> {
+    tracing::info!(
+        target: "mcp",
+        tool = "delete_comment",
+        issue_key = %input.issue_key,
+        comment_id = %input.comment_id,
+        "Deleting comment from issue"
+    );
+
+    ctx.client
+        .delete_comment(&input.issue_key, &input.comment_id, &ctx.auth)
+        .await
+        .map_err(|e| {
+            tracing::error!(
+                target: "mcp",
+                tool = "delete_comment",
+                error = %e,
+                issue_key = %input.issue_key,
+                comment_id = %input.comment_id,
+                "Failed to delete comment"
+            );
+
+            if let Some(jira_client::error::JiraError::ApiError { status_code, response }) = e.downcast_ref::<jira_client::error::JiraError>() {
+                let error_message = extract_error_message(response);
+
+                return rmcp::ErrorData::internal_error(
+                    format!("Jira API Error ({}): {}", status_code, error_message),
+                    Some(serde_json::json!({
+                        "issue_key": input.issue_key,
+                        "comment_id": input.comment_id,
+                        "status_code": status_code,
+                        "jira_response": response
+                    })),
+                );
+            }
+
+            rmcp::ErrorData::internal_error(
+                format!("Failed to delete comment {} from issue {}: {}", input.comment_id, input.issue_key, e),
+                None
+            )
+        })?;
+
+    tracing::info!(
+        target: "mcp",
+        tool = "delete_comment",
+        issue_key = %input.issue_key,
+        comment_id = %input.comment_id,
+        "Comment deleted successfully"
+    );
+
+    Ok(CallToolResult::structured(
+        serde_json::json!({
+            "success": true,
+            "issue_key": input.issue_key,
+            "comment_id": input.comment_id,
+            "message": format!("Comment {} deleted from issue {}", input.comment_id, input.issue_key)
+        }),
+    ))
 }

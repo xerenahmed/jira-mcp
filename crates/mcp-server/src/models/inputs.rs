@@ -64,6 +64,13 @@ pub struct SearchUsersInput {
     pub assignable_only: bool,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct DeleteCommentInput {
+    pub issue_key: String,
+    /// The ID of the comment to delete (can be obtained from get_comments)
+    pub comment_id: String,
+}
+
 pub fn default_limit() -> usize {
     20
 }

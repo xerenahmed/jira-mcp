@@ -131,6 +131,15 @@ impl JiraClient {
         self.api_client.list_issue_types(project_key, auth).await
     }
 
+    pub async fn delete_comment(
+        &self,
+        issue_key: &str,
+        comment_id: &str,
+        auth: &Auth,
+    ) -> Result<()> {
+        self.api_client.delete_comment(issue_key, comment_id, auth).await
+    }
+
 
     pub async fn get_board_configuration(
         &self,
