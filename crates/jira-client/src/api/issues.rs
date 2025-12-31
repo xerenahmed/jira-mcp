@@ -408,6 +408,31 @@ impl ApiClient {
         }
         Ok(issues)
     }
+    pub async fn get_transitions(
+        &self,
+        issue_key: &str,
+        expand: Option<&str>,
+        auth: &Auth,
+    ) -> Result<Value> {
+        tracing::info!(target: "jira", op = "get_transitions", issue_key = %issue_key, expand = ?expand);
+        let mut query_params = Vec::new();
+        if let Some(exp) = expand {
+            query_params.push(("expand".into(), exp.into()));
+        }
+        let params = if query_params.is_empty() {
+            None
+        } else {
+            Some(query_params)
+        };
+        self.make_request(
+            reqwest::Method::GET,
+            &format!("/rest/api/3/issue/{}/transitions", issue_key),
+            auth,
+            params,
+            None,
+        ).await
+    }
+
     pub async fn list_issue_types(
         &self,
         project_key: Option<&str>,

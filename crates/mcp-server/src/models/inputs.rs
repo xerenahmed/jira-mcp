@@ -64,6 +64,13 @@ pub struct SearchUsersInput {
     pub assignable_only: bool,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct GetTransitionsInput {
+    pub issue_key: String,
+    #[serde(default)]
+    pub expand: Option<String>,
+}
+
 pub fn default_limit() -> usize {
     20
 }

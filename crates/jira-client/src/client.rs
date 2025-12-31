@@ -131,6 +131,15 @@ impl JiraClient {
         self.api_client.list_issue_types(project_key, auth).await
     }
 
+    pub async fn get_transitions(
+        &self,
+        issue_key: &str,
+        expand: Option<&str>,
+        auth: &Auth,
+    ) -> Result<serde_json::Value> {
+        self.api_client.get_transitions(issue_key, expand, auth).await
+    }
+
 
     pub async fn get_board_configuration(
         &self,
