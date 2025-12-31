@@ -142,4 +142,30 @@ impl ApiClient {
 
         Ok(all_boards)
     }
+
+    pub async fn move_issues_to_backlog(
+        &self,
+        issue_keys: &[String],
+        auth: &Auth,
+    ) -> Result<()> {
+        tracing::info!(
+            target: "jira",
+            op = "move_issues_to_backlog",
+            issues = ?issue_keys
+        );
+
+        let body = serde_json::json!({
+            "issues": issue_keys
+        });
+
+        self.make_request(
+            reqwest::Method::POST,
+            "/rest/agile/1.0/backlog/issue",
+            auth,
+            None,
+            Some(body),
+        ).await?;
+
+        Ok(())
+    }
 }

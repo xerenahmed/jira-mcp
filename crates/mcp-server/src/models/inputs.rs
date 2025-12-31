@@ -64,6 +64,12 @@ pub struct SearchUsersInput {
     pub assignable_only: bool,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct MoveToBacklogInput {
+    /// List of issue keys to move to the backlog
+    pub issue_keys: Vec<String>,
+}
+
 pub fn default_limit() -> usize {
     20
 }
