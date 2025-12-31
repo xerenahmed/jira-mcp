@@ -134,6 +134,16 @@ impl JiraAssistantServer {
         let ctx = jira_ctx()?;
         handlers::users::search_users_handler(input, &ctx).await
     }
+
+    #[tool(description = "Delete a link between two issues")]
+    async fn delete_issue_link(
+        &self,
+        p: Parameters<DeleteIssueLinkInput>,
+    ) -> Result<CallToolResult, rmcp::ErrorData> {
+        let Parameters(input) = p;
+        let ctx = jira_ctx()?;
+        handlers::issues::delete_issue_link_handler(input, &ctx).await
+    }
 }
 
 #[tool_handler]
@@ -143,7 +153,7 @@ impl ServerHandler for JiraAssistantServer {
             protocol_version: ProtocolVersion::V_2025_06_18,
             capabilities: ServerCapabilities::builder().enable_tools().build(),
             server_info: Implementation::from_build_env(),
-            instructions: Some("Jira Assistant tools: create_issue, update_issue, search_issues, list_fields, get_field_details, list_issue_types, list_boards, get_issue, get_user_info, list_projects, search_users".into()),
+            instructions: Some("Jira Assistant tools: create_issue, update_issue, search_issues, list_fields, get_field_details, list_issue_types, list_boards, get_issue, get_user_info, list_projects, search_users, delete_issue_link".into()),
         }
     }
 }

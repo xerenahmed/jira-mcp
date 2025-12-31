@@ -408,6 +408,24 @@ impl ApiClient {
         }
         Ok(issues)
     }
+    pub async fn delete_issue_link(
+        &self,
+        link_id: &str,
+        auth: &Auth,
+    ) -> Result<()> {
+        tracing::info!(target: "jira", op = "delete_issue_link", link_id = %link_id);
+
+        self.make_request(
+            reqwest::Method::DELETE,
+            &format!("/rest/api/3/issueLink/{}", link_id),
+            auth,
+            None,
+            None,
+        ).await?;
+
+        Ok(())
+    }
+
     pub async fn list_issue_types(
         &self,
         project_key: Option<&str>,

@@ -131,6 +131,14 @@ impl JiraClient {
         self.api_client.list_issue_types(project_key, auth).await
     }
 
+    pub async fn delete_issue_link(
+        &self,
+        link_id: &str,
+        auth: &Auth,
+    ) -> Result<()> {
+        self.api_client.delete_issue_link(link_id, auth).await
+    }
+
 
     pub async fn get_board_configuration(
         &self,
