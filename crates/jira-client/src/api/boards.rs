@@ -195,4 +195,32 @@ impl ApiClient {
 
         Ok(all_sprints)
     }
+
+    pub async fn move_issues_to_sprint(
+        &self,
+        sprint_id: u64,
+        issue_keys: &[String],
+        auth: &Auth,
+    ) -> Result<()> {
+        tracing::info!(
+            target: "jira",
+            op = "move_issues_to_sprint",
+            sprint_id = sprint_id,
+            issues = ?issue_keys
+        );
+
+        let body = serde_json::json!({
+            "issues": issue_keys
+        });
+
+        self.make_request(
+            reqwest::Method::POST,
+            &format!("/rest/agile/1.0/sprint/{}/issue", sprint_id),
+            auth,
+            None,
+            Some(body),
+        ).await?;
+
+        Ok(())
+    }
 }

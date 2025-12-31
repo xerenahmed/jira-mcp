@@ -279,4 +279,13 @@ impl JiraClient {
     ) -> Result<serde_json::Value> {
         self.api_client.add_comment(issue_key, body, visibility, auth).await
     }
+
+    pub async fn move_issues_to_sprint(
+        &self,
+        sprint_id: u64,
+        issue_keys: &[String],
+        auth: &Auth,
+    ) -> Result<()> {
+        self.api_client.move_issues_to_sprint(sprint_id, issue_keys, auth).await
+    }
 }
