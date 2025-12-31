@@ -285,7 +285,7 @@ impl JiraAssistantServer {
         handlers::issues::update_comment_handler(input, &ctx).await
     }
 
-    #[tool(description = "Add a label to an issue")]
+    #[tool(description = "Add one or more labels to an issue")]
     async fn add_label(
         &self,
         p: Parameters<AddLabelInput>,
@@ -295,7 +295,7 @@ impl JiraAssistantServer {
         handlers::issues::add_label_handler(input, &ctx).await
     }
 
-    #[tool(description = "Remove a label from an issue")]
+    #[tool(description = "Remove one or more labels from an issue")]
     async fn remove_label(
         &self,
         p: Parameters<RemoveLabelInput>,

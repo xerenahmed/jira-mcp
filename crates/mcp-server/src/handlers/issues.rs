@@ -1128,12 +1128,12 @@ pub async fn add_label_handler(
         target: "mcp",
         tool = "add_label",
         issue_key = %input.issue_key,
-        label = %input.label,
-        "Adding label to issue"
+        labels = ?input.labels,
+        "Adding labels to issue"
     );
 
     ctx.client
-        .add_label(&input.issue_key, &input.label, &ctx.auth)
+        .add_labels(&input.issue_key, &input.labels, &ctx.auth)
         .await
         .map_err(|e| {
             tracing::error!(
@@ -1141,8 +1141,8 @@ pub async fn add_label_handler(
                 tool = "add_label",
                 error = %e,
                 issue_key = %input.issue_key,
-                label = %input.label,
-                "Failed to add label"
+                labels = ?input.labels,
+                "Failed to add labels"
             );
 
             if let Some(jira_client::error::JiraError::ApiError { status_code, response }) = e.downcast_ref::<jira_client::error::JiraError>() {
@@ -1152,7 +1152,7 @@ pub async fn add_label_handler(
                     format!("Jira API Error ({}): {}", status_code, error_message),
                     Some(serde_json::json!({
                         "issue_key": input.issue_key,
-                        "label": input.label,
+                        "labels": input.labels,
                         "status_code": status_code,
                         "jira_response": response
                     })),
@@ -1160,24 +1160,25 @@ pub async fn add_label_handler(
             }
 
             rmcp::ErrorData::internal_error(
-                format!("Failed to add label to issue {}: {}", input.issue_key, e),
+                format!("Failed to add labels to issue {}: {}", input.issue_key, e),
                 None
             )
         })?;
 
+    let count = input.labels.len();
     tracing::info!(
         target: "mcp",
         tool = "add_label",
         issue_key = %input.issue_key,
-        label = %input.label,
-        "Label added successfully"
+        count = count,
+        "Labels added successfully"
     );
 
     Ok(CallToolResult::structured(
         serde_json::json!({
             "issue_key": input.issue_key,
-            "label": input.label,
-            "message": format!("Label '{}' added to issue {}", input.label, input.issue_key)
+            "labels_added": input.labels,
+            "count": count
         }),
     ))
 }
@@ -1190,12 +1191,12 @@ pub async fn remove_label_handler(
         target: "mcp",
         tool = "remove_label",
         issue_key = %input.issue_key,
-        label = %input.label,
-        "Removing label from issue"
+        labels = ?input.labels,
+        "Removing labels from issue"
     );
 
     ctx.client
-        .remove_label(&input.issue_key, &input.label, &ctx.auth)
+        .remove_labels(&input.issue_key, &input.labels, &ctx.auth)
         .await
         .map_err(|e| {
             tracing::error!(
@@ -1203,8 +1204,8 @@ pub async fn remove_label_handler(
                 tool = "remove_label",
                 error = %e,
                 issue_key = %input.issue_key,
-                label = %input.label,
-                "Failed to remove label"
+                labels = ?input.labels,
+                "Failed to remove labels"
             );
 
             if let Some(jira_client::error::JiraError::ApiError { status_code, response }) = e.downcast_ref::<jira_client::error::JiraError>() {
@@ -1214,7 +1215,7 @@ pub async fn remove_label_handler(
                     format!("Jira API Error ({}): {}", status_code, error_message),
                     Some(serde_json::json!({
                         "issue_key": input.issue_key,
-                        "label": input.label,
+                        "labels": input.labels,
                         "status_code": status_code,
                         "jira_response": response
                     })),
@@ -1222,24 +1223,25 @@ pub async fn remove_label_handler(
             }
 
             rmcp::ErrorData::internal_error(
-                format!("Failed to remove label '{}' from issue {}: {}", input.label, input.issue_key, e),
+                format!("Failed to remove labels from issue {}: {}", input.issue_key, e),
                 None
             )
         })?;
 
+    let count = input.labels.len();
     tracing::info!(
         target: "mcp",
         tool = "remove_label",
         issue_key = %input.issue_key,
-        label = %input.label,
-        "Label removed successfully"
+        count = count,
+        "Labels removed successfully"
     );
 
     Ok(CallToolResult::structured(
         serde_json::json!({
-            "success": true,
             "issue_key": input.issue_key,
-            "removed_label": input.label
+            "labels_removed": input.labels,
+            "count": count
         }),
     ))
 }

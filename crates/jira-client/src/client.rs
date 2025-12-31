@@ -331,22 +331,22 @@ impl JiraClient {
         self.api_client.update_comment(issue_key, comment_id, body, auth).await
     }
 
-    pub async fn add_label(
+    pub async fn add_labels(
         &self,
         issue_key: &str,
-        label: &str,
+        labels: &[String],
         auth: &Auth,
     ) -> Result<()> {
-        self.api_client.add_label(issue_key, label, auth).await
+        self.api_client.add_labels(issue_key, labels, auth).await
     }
 
-    pub async fn remove_label(
+    pub async fn remove_labels(
         &self,
         issue_key: &str,
-        label: &str,
+        labels: &[String],
         auth: &Auth,
     ) -> Result<()> {
-        self.api_client.remove_label(issue_key, label, auth).await
+        self.api_client.remove_labels(issue_key, labels, auth).await
     }
 
     pub async fn delete_comment(

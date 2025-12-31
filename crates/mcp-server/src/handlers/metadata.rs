@@ -201,9 +201,27 @@ pub async fn list_labels_handler(
         .await
         .map_err(|e| log_err("list_labels", "jira_error", e.to_string()))?;
 
+    // Check total count from paginated response (when query is not provided)
+    if input.query.is_none() {
+        let total = result.get("total").and_then(|v| v.as_u64()).unwrap_or(0);
+        if total > 200 {
+            return Err(rmcp::ErrorData::invalid_request(
+                format!(
+                    "Too many labels ({} total). Use the 'query' parameter to filter labels by name. Example: query=\"bug\" to find labels containing 'bug'.",
+                    total
+                ),
+                Some(serde_json::json!({
+                    "total_labels": total,
+                    "limit": 200,
+                    "suggestion": "Use query parameter to filter labels by name"
+                }))
+            ));
+        }
+    }
+
     // Count differs based on response format (autocomplete vs paginated)
     let count = result
-        .get("results")
+        .get("labels")
         .and_then(|v| v.as_array())
         .or_else(|| result.get("values").and_then(|v| v.as_array()))
         .map(|a| a.len())

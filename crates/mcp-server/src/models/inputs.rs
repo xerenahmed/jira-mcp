@@ -185,15 +185,15 @@ pub struct UpdateCommentInput {
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct AddLabelInput {
     pub issue_key: String,
-    /// The label to add to the issue
-    pub label: String,
+    /// The labels to add to the issue
+    pub labels: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct RemoveLabelInput {
     pub issue_key: String,
-    /// The label to remove from the issue
-    pub label: String,
+    /// The labels to remove from the issue
+    pub labels: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]

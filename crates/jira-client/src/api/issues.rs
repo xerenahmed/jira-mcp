@@ -693,19 +693,19 @@ impl ApiClient {
         ).await
     }
 
-    pub async fn add_label(
+    pub async fn add_labels(
         &self,
         issue_key: &str,
-        label: &str,
+        labels: &[String],
         auth: &Auth,
     ) -> Result<()> {
-        tracing::info!(target: "jira", op = "add_label", issue_key = %issue_key, label = %label);
+        tracing::info!(target: "jira", op = "add_labels", issue_key = %issue_key, labels = ?labels);
 
-        let body = serde_json::json!({
+        let label_ops: Vec<_> = labels.iter().map(|l| json!({ "add": l })).collect();
+
+        let body = json!({
             "update": {
-                "labels": [
-                    { "add": label }
-                ]
+                "labels": label_ops
             }
         });
 
@@ -720,19 +720,19 @@ impl ApiClient {
         Ok(())
     }
 
-    pub async fn remove_label(
+    pub async fn remove_labels(
         &self,
         issue_key: &str,
-        label: &str,
+        labels: &[String],
         auth: &Auth,
     ) -> Result<()> {
-        tracing::info!(target: "jira", op = "remove_label", issue_key = %issue_key, label = %label);
+        tracing::info!(target: "jira", op = "remove_labels", issue_key = %issue_key, labels = ?labels);
 
-        let body = serde_json::json!({
+        let label_ops: Vec<_> = labels.iter().map(|l| json!({ "remove": l })).collect();
+
+        let body = json!({
             "update": {
-                "labels": [
-                    { "remove": label }
-                ]
+                "labels": label_ops
             }
         });
 
