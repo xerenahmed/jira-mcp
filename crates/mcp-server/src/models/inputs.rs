@@ -155,6 +155,54 @@ pub struct GetWatchersInput {
     pub issue_key: String,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct DeleteIssueLinkInput {
+    /// The ID of the issue link to delete
+    pub link_id: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct MoveToBacklogInput {
+    /// List of issue keys to move to the backlog
+    pub issue_keys: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct GetSprintInput {
+    /// The sprint ID to get details for
+    pub sprint_id: u64,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct UpdateCommentInput {
+    pub issue_key: String,
+    /// The ID of the comment to update (can be obtained from get_comments)
+    pub comment_id: String,
+    /// The new comment body text (plain text, will be converted to ADF)
+    pub body: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct AddLabelInput {
+    pub issue_key: String,
+    /// The label to add to the issue
+    pub label: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct RemoveLabelInput {
+    pub issue_key: String,
+    /// The label to remove from the issue
+    pub label: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct DeleteCommentInput {
+    pub issue_key: String,
+    /// The ID of the comment to delete (can be obtained from get_comments)
+    pub comment_id: String,
+}
+
 pub fn default_limit() -> usize {
     20
 }

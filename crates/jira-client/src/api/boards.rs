@@ -223,4 +223,49 @@ impl ApiClient {
 
         Ok(())
     }
+
+    pub async fn move_issues_to_backlog(
+        &self,
+        issue_keys: &[String],
+        auth: &Auth,
+    ) -> Result<()> {
+        tracing::info!(
+            target: "jira",
+            op = "move_issues_to_backlog",
+            issues = ?issue_keys
+        );
+
+        let body = serde_json::json!({
+            "issues": issue_keys
+        });
+
+        self.make_request(
+            reqwest::Method::POST,
+            "/rest/agile/1.0/backlog/issue",
+            auth,
+            None,
+            Some(body),
+        ).await?;
+
+        Ok(())
+    }
+
+    pub async fn get_sprint(
+        &self,
+        sprint_id: u64,
+        auth: &Auth,
+    ) -> Result<Sprint> {
+        tracing::info!(target: "jira", op = "get_sprint", sprint_id = sprint_id);
+
+        let response: Value = self.make_request(
+            reqwest::Method::GET,
+            &format!("/rest/agile/1.0/sprint/{}", sprint_id),
+            auth,
+            None,
+            None,
+        ).await?;
+
+        let sprint: Sprint = serde_json::from_value(response)?;
+        Ok(sprint)
+    }
 }

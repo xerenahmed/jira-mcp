@@ -7,7 +7,7 @@ use rmcp::model::CallToolResult;
 use super::error_utils::{extract_error_message, get_jql_suggestions, get_create_suggestions, get_update_suggestions};
 use super::super::context::JiraCtx;
 use super::super::errors::log_err;
-use super::super::models::{SearchIssuesInput, GetIssueInput, GetTransitionsInput, TransitionIssueInput, AddCommentInput, GetCommentsInput, AssignIssueInput, AddWatcherInput, RemoveWatcherInput, LinkIssuesInput, GetWatchersInput};
+use super::super::models::{SearchIssuesInput, GetIssueInput, GetTransitionsInput, TransitionIssueInput, AddCommentInput, GetCommentsInput, AssignIssueInput, AddWatcherInput, RemoveWatcherInput, LinkIssuesInput, GetWatchersInput, DeleteIssueLinkInput, UpdateCommentInput, AddLabelInput, RemoveLabelInput, DeleteCommentInput};
 use jira_client::utils::adf_collect_text;
 
 pub async fn create_issue_handler(
@@ -995,6 +995,314 @@ pub async fn get_watchers_handler(
             "is_watching": is_watching,
             "watch_count": watch_count,
             "watchers": watchers
+        }),
+    ))
+}
+
+pub async fn delete_issue_link_handler(
+    input: DeleteIssueLinkInput,
+    ctx: &JiraCtx,
+) -> Result<CallToolResult, rmcp::ErrorData> {
+    tracing::info!(
+        target: "mcp",
+        tool = "delete_issue_link",
+        link_id = %input.link_id,
+        "Deleting issue link"
+    );
+
+    ctx.client
+        .delete_issue_link(&input.link_id, &ctx.auth)
+        .await
+        .map_err(|e| {
+            tracing::error!(
+                target: "mcp",
+                tool = "delete_issue_link",
+                error = %e,
+                link_id = %input.link_id,
+                "Failed to delete issue link"
+            );
+
+            if let Some(jira_client::error::JiraError::ApiError { status_code, response }) = e.downcast_ref::<jira_client::error::JiraError>() {
+                let error_message = extract_error_message(response);
+
+                return rmcp::ErrorData::internal_error(
+                    format!("Jira API Error ({}): {}", status_code, error_message),
+                    Some(serde_json::json!({
+                        "link_id": input.link_id,
+                        "status_code": status_code,
+                        "jira_response": response
+                    })),
+                );
+            }
+
+            rmcp::ErrorData::internal_error(
+                format!("Failed to delete issue link {}: {}", input.link_id, e),
+                None
+            )
+        })?;
+
+    tracing::info!(
+        target: "mcp",
+        tool = "delete_issue_link",
+        link_id = %input.link_id,
+        "Issue link deleted successfully"
+    );
+
+    Ok(CallToolResult::structured(
+        serde_json::json!({
+            "success": true,
+            "link_id": input.link_id,
+            "message": format!("Issue link {} deleted successfully", input.link_id)
+        }),
+    ))
+}
+
+pub async fn update_comment_handler(
+    input: UpdateCommentInput,
+    ctx: &JiraCtx,
+) -> Result<CallToolResult, rmcp::ErrorData> {
+    tracing::info!(
+        target: "mcp",
+        tool = "update_comment",
+        issue_key = %input.issue_key,
+        comment_id = %input.comment_id,
+        "Updating comment"
+    );
+
+    ctx.client
+        .update_comment(&input.issue_key, &input.comment_id, &input.body, &ctx.auth)
+        .await
+        .map_err(|e| {
+            tracing::error!(
+                target: "mcp",
+                tool = "update_comment",
+                error = %e,
+                issue_key = %input.issue_key,
+                comment_id = %input.comment_id,
+                "Failed to update comment"
+            );
+
+            if let Some(jira_client::error::JiraError::ApiError { status_code, response }) = e.downcast_ref::<jira_client::error::JiraError>() {
+                let error_message = extract_error_message(response);
+
+                return rmcp::ErrorData::internal_error(
+                    format!("Jira API Error ({}): {}", status_code, error_message),
+                    Some(serde_json::json!({
+                        "issue_key": input.issue_key,
+                        "comment_id": input.comment_id,
+                        "status_code": status_code,
+                        "jira_response": response
+                    })),
+                );
+            }
+
+            rmcp::ErrorData::internal_error(
+                format!("Failed to update comment {} on issue {}: {}", input.comment_id, input.issue_key, e),
+                None
+            )
+        })?;
+
+    tracing::info!(
+        target: "mcp",
+        tool = "update_comment",
+        issue_key = %input.issue_key,
+        comment_id = %input.comment_id,
+        "Comment updated successfully"
+    );
+
+    Ok(CallToolResult::structured(
+        serde_json::json!({
+            "success": true,
+            "issue_key": input.issue_key,
+            "comment_id": input.comment_id,
+            "message": format!("Comment {} on issue {} updated successfully", input.comment_id, input.issue_key)
+        }),
+    ))
+}
+
+pub async fn add_label_handler(
+    input: AddLabelInput,
+    ctx: &JiraCtx,
+) -> Result<CallToolResult, rmcp::ErrorData> {
+    tracing::info!(
+        target: "mcp",
+        tool = "add_label",
+        issue_key = %input.issue_key,
+        label = %input.label,
+        "Adding label to issue"
+    );
+
+    ctx.client
+        .add_label(&input.issue_key, &input.label, &ctx.auth)
+        .await
+        .map_err(|e| {
+            tracing::error!(
+                target: "mcp",
+                tool = "add_label",
+                error = %e,
+                issue_key = %input.issue_key,
+                label = %input.label,
+                "Failed to add label"
+            );
+
+            if let Some(jira_client::error::JiraError::ApiError { status_code, response }) = e.downcast_ref::<jira_client::error::JiraError>() {
+                let error_message = extract_error_message(response);
+
+                return rmcp::ErrorData::internal_error(
+                    format!("Jira API Error ({}): {}", status_code, error_message),
+                    Some(serde_json::json!({
+                        "issue_key": input.issue_key,
+                        "label": input.label,
+                        "status_code": status_code,
+                        "jira_response": response
+                    })),
+                );
+            }
+
+            rmcp::ErrorData::internal_error(
+                format!("Failed to add label to issue {}: {}", input.issue_key, e),
+                None
+            )
+        })?;
+
+    tracing::info!(
+        target: "mcp",
+        tool = "add_label",
+        issue_key = %input.issue_key,
+        label = %input.label,
+        "Label added successfully"
+    );
+
+    Ok(CallToolResult::structured(
+        serde_json::json!({
+            "issue_key": input.issue_key,
+            "label": input.label,
+            "message": format!("Label '{}' added to issue {}", input.label, input.issue_key)
+        }),
+    ))
+}
+
+pub async fn remove_label_handler(
+    input: RemoveLabelInput,
+    ctx: &JiraCtx,
+) -> Result<CallToolResult, rmcp::ErrorData> {
+    tracing::info!(
+        target: "mcp",
+        tool = "remove_label",
+        issue_key = %input.issue_key,
+        label = %input.label,
+        "Removing label from issue"
+    );
+
+    ctx.client
+        .remove_label(&input.issue_key, &input.label, &ctx.auth)
+        .await
+        .map_err(|e| {
+            tracing::error!(
+                target: "mcp",
+                tool = "remove_label",
+                error = %e,
+                issue_key = %input.issue_key,
+                label = %input.label,
+                "Failed to remove label"
+            );
+
+            if let Some(jira_client::error::JiraError::ApiError { status_code, response }) = e.downcast_ref::<jira_client::error::JiraError>() {
+                let error_message = extract_error_message(response);
+
+                return rmcp::ErrorData::internal_error(
+                    format!("Jira API Error ({}): {}", status_code, error_message),
+                    Some(serde_json::json!({
+                        "issue_key": input.issue_key,
+                        "label": input.label,
+                        "status_code": status_code,
+                        "jira_response": response
+                    })),
+                );
+            }
+
+            rmcp::ErrorData::internal_error(
+                format!("Failed to remove label '{}' from issue {}: {}", input.label, input.issue_key, e),
+                None
+            )
+        })?;
+
+    tracing::info!(
+        target: "mcp",
+        tool = "remove_label",
+        issue_key = %input.issue_key,
+        label = %input.label,
+        "Label removed successfully"
+    );
+
+    Ok(CallToolResult::structured(
+        serde_json::json!({
+            "success": true,
+            "issue_key": input.issue_key,
+            "removed_label": input.label
+        }),
+    ))
+}
+
+pub async fn delete_comment_handler(
+    input: DeleteCommentInput,
+    ctx: &JiraCtx,
+) -> Result<CallToolResult, rmcp::ErrorData> {
+    tracing::info!(
+        target: "mcp",
+        tool = "delete_comment",
+        issue_key = %input.issue_key,
+        comment_id = %input.comment_id,
+        "Deleting comment from issue"
+    );
+
+    ctx.client
+        .delete_comment(&input.issue_key, &input.comment_id, &ctx.auth)
+        .await
+        .map_err(|e| {
+            tracing::error!(
+                target: "mcp",
+                tool = "delete_comment",
+                error = %e,
+                issue_key = %input.issue_key,
+                comment_id = %input.comment_id,
+                "Failed to delete comment"
+            );
+
+            if let Some(jira_client::error::JiraError::ApiError { status_code, response }) = e.downcast_ref::<jira_client::error::JiraError>() {
+                let error_message = extract_error_message(response);
+
+                return rmcp::ErrorData::internal_error(
+                    format!("Jira API Error ({}): {}", status_code, error_message),
+                    Some(serde_json::json!({
+                        "issue_key": input.issue_key,
+                        "comment_id": input.comment_id,
+                        "status_code": status_code,
+                        "jira_response": response
+                    })),
+                );
+            }
+
+            rmcp::ErrorData::internal_error(
+                format!("Failed to delete comment {} from issue {}: {}", input.comment_id, input.issue_key, e),
+                None
+            )
+        })?;
+
+    tracing::info!(
+        target: "mcp",
+        tool = "delete_comment",
+        issue_key = %input.issue_key,
+        comment_id = %input.comment_id,
+        "Comment deleted successfully"
+    );
+
+    Ok(CallToolResult::structured(
+        serde_json::json!({
+            "success": true,
+            "issue_key": input.issue_key,
+            "comment_id": input.comment_id,
+            "message": format!("Comment {} deleted from issue {}", input.comment_id, input.issue_key)
         }),
     ))
 }

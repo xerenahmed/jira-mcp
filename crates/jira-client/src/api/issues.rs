@@ -638,6 +638,134 @@ impl ApiClient {
         ).await
     }
 
+    pub async fn delete_issue_link(
+        &self,
+        link_id: &str,
+        auth: &Auth,
+    ) -> Result<()> {
+        tracing::info!(target: "jira", op = "delete_issue_link", link_id = %link_id);
+
+        self.make_request(
+            reqwest::Method::DELETE,
+            &format!("/rest/api/3/issueLink/{}", link_id),
+            auth,
+            None,
+            None,
+        ).await?;
+
+        Ok(())
+    }
+
+    pub async fn update_comment(
+        &self,
+        issue_key: &str,
+        comment_id: &str,
+        body: &str,
+        auth: &Auth,
+    ) -> Result<Value> {
+        tracing::info!(target: "jira", op = "update_comment", issue_key = %issue_key, comment_id = %comment_id);
+
+        // Convert plain text to ADF format
+        let adf_body = serde_json::json!({
+            "body": {
+                "type": "doc",
+                "version": 1,
+                "content": [
+                    {
+                        "type": "paragraph",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": body
+                            }
+                        ]
+                    }
+                ]
+            }
+        });
+
+        self.make_request(
+            reqwest::Method::PUT,
+            &format!("/rest/api/3/issue/{}/comment/{}", issue_key, comment_id),
+            auth,
+            None,
+            Some(adf_body),
+        ).await
+    }
+
+    pub async fn add_label(
+        &self,
+        issue_key: &str,
+        label: &str,
+        auth: &Auth,
+    ) -> Result<()> {
+        tracing::info!(target: "jira", op = "add_label", issue_key = %issue_key, label = %label);
+
+        let body = serde_json::json!({
+            "update": {
+                "labels": [
+                    { "add": label }
+                ]
+            }
+        });
+
+        self.make_request(
+            reqwest::Method::PUT,
+            &format!("/rest/api/3/issue/{}", issue_key),
+            auth,
+            None,
+            Some(body),
+        ).await?;
+
+        Ok(())
+    }
+
+    pub async fn remove_label(
+        &self,
+        issue_key: &str,
+        label: &str,
+        auth: &Auth,
+    ) -> Result<()> {
+        tracing::info!(target: "jira", op = "remove_label", issue_key = %issue_key, label = %label);
+
+        let body = serde_json::json!({
+            "update": {
+                "labels": [
+                    { "remove": label }
+                ]
+            }
+        });
+
+        self.make_request(
+            reqwest::Method::PUT,
+            &format!("/rest/api/3/issue/{}", issue_key),
+            auth,
+            None,
+            Some(body),
+        ).await?;
+
+        Ok(())
+    }
+
+    pub async fn delete_comment(
+        &self,
+        issue_key: &str,
+        comment_id: &str,
+        auth: &Auth,
+    ) -> Result<()> {
+        tracing::info!(target: "jira", op = "delete_comment", issue_key = %issue_key, comment_id = %comment_id);
+
+        self.make_request(
+            reqwest::Method::DELETE,
+            &format!("/rest/api/3/issue/{}/comment/{}", issue_key, comment_id),
+            auth,
+            None,
+            None,
+        ).await?;
+
+        Ok(())
+    }
+
     pub async fn get_comments(
         &self,
         issue_key: &str,

@@ -244,6 +244,76 @@ impl JiraAssistantServer {
         let ctx = jira_ctx()?;
         handlers::issues::get_watchers_handler(input, &ctx).await
     }
+
+    #[tool(description = "Delete a link between two issues")]
+    async fn delete_issue_link(
+        &self,
+        p: Parameters<DeleteIssueLinkInput>,
+    ) -> Result<CallToolResult, rmcp::ErrorData> {
+        let Parameters(input) = p;
+        let ctx = jira_ctx()?;
+        handlers::issues::delete_issue_link_handler(input, &ctx).await
+    }
+
+    #[tool(description = "Move issues to the backlog (remove from sprint)")]
+    async fn move_to_backlog(
+        &self,
+        p: Parameters<MoveToBacklogInput>,
+    ) -> Result<CallToolResult, rmcp::ErrorData> {
+        let Parameters(input) = p;
+        let ctx = jira_ctx()?;
+        handlers::metadata::move_to_backlog_handler(input, &ctx).await
+    }
+
+    #[tool(description = "Get details of a specific sprint")]
+    async fn get_sprint(
+        &self,
+        p: Parameters<GetSprintInput>,
+    ) -> Result<CallToolResult, rmcp::ErrorData> {
+        let Parameters(input) = p;
+        let ctx = jira_ctx()?;
+        handlers::metadata::get_sprint_handler(input, &ctx).await
+    }
+
+    #[tool(description = "Update an existing comment on an issue")]
+    async fn update_comment(
+        &self,
+        p: Parameters<UpdateCommentInput>,
+    ) -> Result<CallToolResult, rmcp::ErrorData> {
+        let Parameters(input) = p;
+        let ctx = jira_ctx()?;
+        handlers::issues::update_comment_handler(input, &ctx).await
+    }
+
+    #[tool(description = "Add a label to an issue")]
+    async fn add_label(
+        &self,
+        p: Parameters<AddLabelInput>,
+    ) -> Result<CallToolResult, rmcp::ErrorData> {
+        let Parameters(input) = p;
+        let ctx = jira_ctx()?;
+        handlers::issues::add_label_handler(input, &ctx).await
+    }
+
+    #[tool(description = "Remove a label from an issue")]
+    async fn remove_label(
+        &self,
+        p: Parameters<RemoveLabelInput>,
+    ) -> Result<CallToolResult, rmcp::ErrorData> {
+        let Parameters(input) = p;
+        let ctx = jira_ctx()?;
+        handlers::issues::remove_label_handler(input, &ctx).await
+    }
+
+    #[tool(description = "Delete a comment from an issue")]
+    async fn delete_comment(
+        &self,
+        p: Parameters<DeleteCommentInput>,
+    ) -> Result<CallToolResult, rmcp::ErrorData> {
+        let Parameters(input) = p;
+        let ctx = jira_ctx()?;
+        handlers::issues::delete_comment_handler(input, &ctx).await
+    }
 }
 
 #[tool_handler]
@@ -253,7 +323,7 @@ impl ServerHandler for JiraAssistantServer {
             protocol_version: ProtocolVersion::V_2025_06_18,
             capabilities: ServerCapabilities::builder().enable_tools().build(),
             server_info: Implementation::from_build_env(),
-            instructions: Some("Jira Assistant tools: create_issue, update_issue, search_issues, list_fields, get_field_details, list_issue_types, list_boards, list_sprints, get_issue, get_user_info, list_projects, search_users, get_transitions, transition_issue, add_comment, get_comments, assign_issue, add_watcher, remove_watcher, link_issues, move_to_sprint, get_watchers".into()),
+            instructions: Some("Jira Assistant tools: create_issue, update_issue, search_issues, list_fields, get_field_details, list_issue_types, list_boards, list_sprints, get_issue, get_user_info, list_projects, search_users, get_transitions, transition_issue, add_comment, get_comments, assign_issue, add_watcher, remove_watcher, link_issues, move_to_sprint, get_watchers, delete_issue_link, move_to_backlog, get_sprint, update_comment, add_label, remove_label, delete_comment".into()),
         }
     }
 }

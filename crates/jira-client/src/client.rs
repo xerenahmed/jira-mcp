@@ -296,4 +296,65 @@ impl JiraClient {
     ) -> Result<serde_json::Value> {
         self.api_client.get_watchers(issue_key, auth).await
     }
+
+    pub async fn delete_issue_link(
+        &self,
+        link_id: &str,
+        auth: &Auth,
+    ) -> Result<()> {
+        self.api_client.delete_issue_link(link_id, auth).await
+    }
+
+    pub async fn move_issues_to_backlog(
+        &self,
+        issue_keys: &[String],
+        auth: &Auth,
+    ) -> Result<()> {
+        self.api_client.move_issues_to_backlog(issue_keys, auth).await
+    }
+
+    pub async fn get_sprint(
+        &self,
+        sprint_id: u64,
+        auth: &Auth,
+    ) -> Result<Sprint> {
+        self.api_client.get_sprint(sprint_id, auth).await
+    }
+
+    pub async fn update_comment(
+        &self,
+        issue_key: &str,
+        comment_id: &str,
+        body: &str,
+        auth: &Auth,
+    ) -> Result<serde_json::Value> {
+        self.api_client.update_comment(issue_key, comment_id, body, auth).await
+    }
+
+    pub async fn add_label(
+        &self,
+        issue_key: &str,
+        label: &str,
+        auth: &Auth,
+    ) -> Result<()> {
+        self.api_client.add_label(issue_key, label, auth).await
+    }
+
+    pub async fn remove_label(
+        &self,
+        issue_key: &str,
+        label: &str,
+        auth: &Auth,
+    ) -> Result<()> {
+        self.api_client.remove_label(issue_key, label, auth).await
+    }
+
+    pub async fn delete_comment(
+        &self,
+        issue_key: &str,
+        comment_id: &str,
+        auth: &Auth,
+    ) -> Result<()> {
+        self.api_client.delete_comment(issue_key, comment_id, auth).await
+    }
 }

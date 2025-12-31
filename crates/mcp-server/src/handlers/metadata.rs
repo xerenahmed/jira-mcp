@@ -3,7 +3,7 @@ use rmcp::model::CallToolResult;
 
 use super::super::context::JiraCtx;
 use super::super::errors::log_err;
-use super::super::models::{ListIssueTypesInput, ListSprintsInput, MoveToSprintInput};
+use super::super::models::{ListIssueTypesInput, ListSprintsInput, MoveToSprintInput, MoveToBacklogInput, GetSprintInput};
 
 pub async fn get_user_info_handler(ctx: &JiraCtx) -> Result<CallToolResult, rmcp::ErrorData> {
     tracing::info!(target: "mcp", tool = "get_user_info");
@@ -132,5 +132,53 @@ pub async fn move_to_sprint_handler(
             "moved_issues": input.issue_keys,
             "count": issue_count
         }),
+    ))
+}
+
+pub async fn move_to_backlog_handler(
+    input: MoveToBacklogInput,
+    ctx: &JiraCtx,
+) -> Result<CallToolResult, rmcp::ErrorData> {
+    tracing::info!(
+        target: "mcp",
+        tool = "move_to_backlog",
+        issues = ?input.issue_keys
+    );
+
+    ctx.client
+        .move_issues_to_backlog(&input.issue_keys, &ctx.auth)
+        .await
+        .map_err(|e| log_err("move_to_backlog", "jira_error", e.to_string()))?;
+
+    tracing::info!(
+        target: "mcp",
+        tool = "move_to_backlog",
+        issues = ?input.issue_keys,
+        "Issues moved to backlog successfully"
+    );
+
+    Ok(CallToolResult::structured(
+        serde_json::json!({
+            "success": true,
+            "message": format!("Successfully moved {} issue(s) to the backlog", input.issue_keys.len()),
+            "moved_issues": input.issue_keys
+        }),
+    ))
+}
+
+pub async fn get_sprint_handler(
+    input: GetSprintInput,
+    ctx: &JiraCtx,
+) -> Result<CallToolResult, rmcp::ErrorData> {
+    tracing::info!(target: "mcp", tool = "get_sprint", sprint_id = input.sprint_id);
+
+    let sprint = ctx
+        .client
+        .get_sprint(input.sprint_id, &ctx.auth)
+        .await
+        .map_err(|e| log_err("get_sprint", "jira_error", e.to_string()))?;
+
+    Ok(CallToolResult::structured(
+        serde_json::to_value(sprint).unwrap_or(serde_json::json!({})),
     ))
 }
