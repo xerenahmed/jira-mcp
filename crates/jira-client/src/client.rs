@@ -361,4 +361,13 @@ impl JiraClient {
     pub async fn list_link_types(&self, auth: &Auth) -> Result<Vec<serde_json::Value>> {
         self.api_client.list_link_types(auth).await
     }
+
+    pub async fn list_labels(
+        &self,
+        start_at: Option<u32>,
+        max_results: Option<u32>,
+        auth: &Auth,
+    ) -> Result<serde_json::Value> {
+        self.api_client.list_labels(start_at, max_results, auth).await
+    }
 }

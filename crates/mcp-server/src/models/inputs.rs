@@ -206,6 +206,16 @@ pub struct DeleteCommentInput {
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct ListLinkTypesInput {}
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct ListLabelsInput {
+    /// Index of the first item to return (0-based pagination)
+    #[serde(default)]
+    pub start_at: Option<u32>,
+    /// Maximum number of labels to return (default: 1000)
+    #[serde(default)]
+    pub max_results: Option<u32>,
+}
+
 pub fn default_limit() -> usize {
     20
 }

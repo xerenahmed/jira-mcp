@@ -3,7 +3,7 @@ use rmcp::model::CallToolResult;
 
 use super::super::context::JiraCtx;
 use super::super::errors::log_err;
-use super::super::models::{ListIssueTypesInput, ListSprintsInput, MoveToSprintInput, MoveToBacklogInput, GetSprintInput};
+use super::super::models::{ListIssueTypesInput, ListSprintsInput, MoveToSprintInput, MoveToBacklogInput, GetSprintInput, ListLabelsInput};
 
 pub async fn get_user_info_handler(ctx: &JiraCtx) -> Result<CallToolResult, rmcp::ErrorData> {
     tracing::info!(target: "mcp", tool = "get_user_info");
@@ -181,4 +181,31 @@ pub async fn get_sprint_handler(
     Ok(CallToolResult::structured(
         serde_json::to_value(sprint).unwrap_or(serde_json::json!({})),
     ))
+}
+
+pub async fn list_labels_handler(
+    input: ListLabelsInput,
+    ctx: &JiraCtx,
+) -> Result<CallToolResult, rmcp::ErrorData> {
+    tracing::info!(
+        target: "mcp",
+        tool = "list_labels",
+        start_at = ?input.start_at,
+        max_results = ?input.max_results
+    );
+
+    let result = ctx
+        .client
+        .list_labels(input.start_at, input.max_results, &ctx.auth)
+        .await
+        .map_err(|e| log_err("list_labels", "jira_error", e.to_string()))?;
+
+    tracing::info!(
+        target: "mcp",
+        tool = "list_labels",
+        count = result.get("values").and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0),
+        "Labels listed successfully"
+    );
+
+    Ok(CallToolResult::structured(result))
 }

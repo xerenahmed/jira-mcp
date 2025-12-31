@@ -323,6 +323,16 @@ impl JiraAssistantServer {
         let ctx = jira_ctx()?;
         handlers::issues::list_link_types_handler(&ctx).await
     }
+
+    #[tool(description = "List all available labels in Jira (paginated)")]
+    async fn list_labels(
+        &self,
+        p: Parameters<ListLabelsInput>,
+    ) -> Result<CallToolResult, rmcp::ErrorData> {
+        let Parameters(input) = p;
+        let ctx = jira_ctx()?;
+        handlers::metadata::list_labels_handler(input, &ctx).await
+    }
 }
 
 #[tool_handler]
@@ -332,7 +342,7 @@ impl ServerHandler for JiraAssistantServer {
             protocol_version: ProtocolVersion::V_2025_06_18,
             capabilities: ServerCapabilities::builder().enable_tools().build(),
             server_info: Implementation::from_build_env(),
-            instructions: Some("Jira Assistant tools: create_issue, update_issue, search_issues, list_fields, get_field_details, list_issue_types, list_boards, list_sprints, get_issue, get_user_info, list_projects, search_users, get_transitions, transition_issue, add_comment, get_comments, assign_issue, add_watcher, remove_watcher, link_issues, move_to_sprint, get_watchers, delete_issue_link, move_to_backlog, get_sprint, update_comment, add_label, remove_label, delete_comment, list_link_types".into()),
+            instructions: Some("Jira Assistant tools: create_issue, update_issue, search_issues, list_fields, get_field_details, list_issue_types, list_boards, list_sprints, get_issue, get_user_info, list_projects, search_users, get_transitions, transition_issue, add_comment, get_comments, assign_issue, add_watcher, remove_watcher, link_issues, move_to_sprint, get_watchers, delete_issue_link, move_to_backlog, get_sprint, update_comment, add_label, remove_label, delete_comment, list_link_types, list_labels".into()),
         }
     }
 }

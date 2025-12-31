@@ -932,4 +932,38 @@ impl ApiClient {
             Some(payload),
         ).await
     }
+
+    /// List all available labels in Jira (paginated)
+    pub async fn list_labels(
+        &self,
+        start_at: Option<u32>,
+        max_results: Option<u32>,
+        auth: &Auth,
+    ) -> Result<Value> {
+        tracing::info!(target: "jira", op = "list_labels", start_at = ?start_at, max_results = ?max_results);
+
+        let mut query_params: Vec<(String, String)> = Vec::new();
+
+        if let Some(start) = start_at {
+            query_params.push(("startAt".into(), start.to_string()));
+        }
+
+        if let Some(max) = max_results {
+            query_params.push(("maxResults".into(), max.to_string()));
+        }
+
+        let query = if query_params.is_empty() {
+            None
+        } else {
+            Some(query_params)
+        };
+
+        self.make_request(
+            reqwest::Method::GET,
+            "/rest/api/3/label",
+            auth,
+            query,
+            None,
+        ).await
+    }
 }
