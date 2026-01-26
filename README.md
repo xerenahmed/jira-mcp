@@ -5,8 +5,7 @@ Developer-focused Model Context Protocol (MCP) server for Jira that communicates
 
 - Crates:
   - `crates/mcp-server`: MCP server exposing Jira tools
-  - `crates/jira-client`: Jira REST client and config loader
-  - `crates/core`: Shared models and helpers
+  - `crates/jira-client`: Jira REST client
 - **31 tools** across 7 categories (see below)
 
 ## Available Tools
@@ -71,61 +70,91 @@ Developer-focused Model Context Protocol (MCP) server for Jira that communicates
 | `search_users` | Search users by name/email |
 
 ## Installing
-- Requires Rust (stable). The repo pins via `rust-toolchain.toml`.
-- Build: `cargo build --workspace`
-- Run server (stdio): `cargo run -p mcp-server`
 
-## Configuring
+### Pre-built Releases
 
-### Jira Configuration
-Create a `config.toml` and either set `JIRA_MCP_CONFIG` to its path or place it under a standard config dir (e.g. `~/.config/jira-mcp/config.toml`).
+Download the latest binary for your platform from [GitHub Releases](https://github.com/xerenahmed/jira-mcp/releases):
 
-Example `config.toml`:
-```
-jira_base_url = "https://your-domain.atlassian.net"
-default_project_key = "ENG"          # optional
-default_issue_type = "Task"          # optional
-board_default = 12345                 # optional
+| Platform | Binary |
+|----------|--------|
+| Linux x86_64 | `mcp-server-linux-x86_64` |
+| macOS x86_64 (Intel) | `mcp-server-macos-x86_64` |
 
-[auth]
-method = "pat"                        # "pat" or "bearer"
-username = "you@example.com"          # required for "pat"
-token = "<jira_api_token_or_bearer>"  # do not commit secrets
+```bash
+# Example: Download and make executable (Linux)
+chmod +x mcp-server-linux-x86_64
+./mcp-server-linux-x86_64 --help
 ```
 
-### Adding to Claude
+### Building from Source
+
+Requires Rust (stable). The repo pins the version via `rust-toolchain.toml`.
+
+```bash
+cargo build --release
+```
+
+The binary will be at `target/release/mcp-server`.
+
+## Configuration
+
+The server requires three parameters, provided via CLI arguments or environment variables:
+
+| Parameter | CLI Flag | Environment Variable | Description |
+|-----------|----------|---------------------|-------------|
+| Jira URL | `--jira-url` | `JIRA_BASE_URL` | Your Jira instance URL (e.g., `https://your-domain.atlassian.net`) |
+| Username | `--username` | `JIRA_USERNAME` | Your Jira username/email |
+| API Token | `--token` | `JIRA_TOKEN` | Your [Jira API token](https://id.atlassian.com/manage-profile/security/api-tokens) |
+
+CLI arguments take precedence over environment variables.
+
+### Running Directly
+
+```bash
+# With CLI arguments
+./mcp-server \
+  --jira-url https://your-domain.atlassian.net \
+  --username you@example.com \
+  --token your-api-token
+
+# With environment variables
+JIRA_BASE_URL=https://your-domain.atlassian.net \
+JIRA_USERNAME=you@example.com \
+JIRA_TOKEN=your-api-token \
+./mcp-server
+```
+
+## Adding to Claude
 
 **Option 1: Using Claude CLI (Recommended)**
 ```bash
-# Build the server first
-cargo build --release
-
 # Add to Claude using the CLI command
-claude mcp add --transport stdio jira --env JIRA_MCP_CONFIG=~/.config/jira-mcp/config.toml -- /path/to/jira-mcp/target/release/mcp-server
+claude mcp add jira \
+  -e JIRA_BASE_URL=https://your-domain.atlassian.net \
+  -e JIRA_USERNAME=you@example.com \
+  -e JIRA_TOKEN=your-api-token \
+  -- /path/to/mcp-server
 ```
 
 **Option 2: Manual Configuration**
 
-1. **Build the MCP server:**
-```bash
-cargo build --release
-```
-
-2. **Update your Claude config** at `~/.claude.json`:
+Update your Claude config at `~/.claude.json`:
 ```json
 {
   "mcpServers": {
     "jira": {
-      "command": "/path/to/jira-mcp/target/release/mcp-server",
+      "command": "/path/to/mcp-server",
       "env": {
-        "JIRA_MCP_CONFIG": "~/.config/jira-mcp/config.toml"
+        "JIRA_BASE_URL": "https://your-domain.atlassian.net",
+        "JIRA_USERNAME": "you@example.com",
+        "JIRA_TOKEN": "your-api-token"
       }
     }
   }
 }
 ```
 
-3. **Restart Claude** to load the Jira MCP server.
+Restart Claude to load the server.
 
 **Using Jira MCP with Claude**
 
