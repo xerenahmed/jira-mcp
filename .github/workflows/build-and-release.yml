@@ -79,16 +79,24 @@ jobs:
         with:
           path: artifacts
 
+      - name: Rename binaries for release
+        run: |
+          cd artifacts
+          for dir in */; do
+            platform="${dir%/}"
+            mv "${dir}mcp-server" "${dir}${platform}"
+          done
+
       - name: Generate release info
         id: release_info
         run: |
           SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
           echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
 
-          # Use heredoc syntax for multiline commit message
+          # Use heredoc syntax for multiline commit message, filter out Co-Authored-By
           {
             echo 'commit_msg<<EOF'
-            git log -1 --pretty=%B
+            git log -1 --pretty=%B | grep -v "Co-Authored-By"
             echo 'EOF'
           } >> $GITHUB_OUTPUT
 
@@ -107,6 +115,6 @@ jobs:
             **Binaries:**
             - Linux x86_64
             - macOS x86_64 (Intel)
-          files: artifacts/**/mcp-server*
+          files: artifacts/**/*
           draft: false
           prerelease: false
