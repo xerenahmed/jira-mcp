@@ -1,60 +1,13 @@
 use anyhow::Result;
-use serde_json::{json, Value};
+use serde_json::Value;
 
 use crate::auth::Auth;
 use crate::models::{Issue, IssueDetail, IssueType};
 use crate::utils::{adf_collect_text, normalize_whitespace, clean_value_recursive};
-use super::ApiClient;
+use crate::api::ApiClient;
 
-const DEFAULT_PAGE_SIZE: usize = 100;
+use super::utils::{DEFAULT_PAGE_SIZE, extract_string_field, should_keep_field};
 
-/// Visibility settings for a comment
-#[derive(Debug, Clone)]
-pub struct CommentVisibility {
-    /// Type of visibility: "role" or "group"
-    pub visibility_type: String,
-    /// The role or group name (e.g., "Administrators", "jira-developers")
-    pub value: String,
-}
-
-/// Converts plain text to Atlassian Document Format (ADF)
-pub fn text_to_adf(text: &str) -> Value {
-    json!({
-        "type": "doc",
-        "version": 1,
-        "content": [
-            {
-                "type": "paragraph",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": text
-                    }
-                ]
-            }
-        ]
-    })
-}
-
-fn extract_string_field(obj: &Value, key: &str, default: &str) -> String {
-    obj.get(key)
-        .and_then(|s| s.as_str())
-        .unwrap_or(default)
-        .to_string()
-}
-fn should_keep_field(field_key: &str) -> bool {
-    const ALWAYS_INCLUDE: &[&str] = &[
-        "parent",
-        "sprint",
-        "epic",
-        "subtasks",
-        "issuelinks",
-        "attachment",
-        "assignee",
-        "reporter",
-    ];
-    ALWAYS_INCLUDE.contains(&field_key)
-}
 impl ApiClient {
     pub async fn get_createmeta(
         &self,
@@ -80,6 +33,7 @@ impl ApiClient {
             None,
         ).await
     }
+
     pub async fn create_issue(
         &self,
         payload: &Value,
@@ -101,6 +55,7 @@ impl ApiClient {
         let browse = self.base_url.join(&format!("/browse/{}", key))?.to_string();
         Ok((key, browse))
     }
+
     pub async fn update_issue(
         &self,
         issue_key: &str,
@@ -117,6 +72,7 @@ impl ApiClient {
         ).await?;
         Ok(())
     }
+
     pub async fn get_issue_detail(&self, key: &str, auth: &Auth) -> Result<IssueDetail> {
         tracing::info!(target: "jira", op = "get_issue_detail", key = %key);
         let query_params = vec![
@@ -264,6 +220,7 @@ impl ApiClient {
             fields: mapped_fields,
         })
     }
+
     pub async fn get_issue_editmeta(&self, key: &str, auth: &Auth) -> Result<Value> {
         tracing::info!(target: "jira", op = "get_issue_editmeta", key = %key);
         self.make_request(
@@ -274,6 +231,7 @@ impl ApiClient {
             None,
         ).await
     }
+
     pub async fn search_issues_fields(
         &self,
         jql: &str,
@@ -320,6 +278,7 @@ impl ApiClient {
         }
         Ok(collected)
     }
+
     pub async fn get_recent_issues(
         &self,
         project_key: Option<&str>,
@@ -388,20 +347,26 @@ impl ApiClient {
         }
         Ok(collected)
     }
+
     pub async fn search_issues(
         &self,
         jql: &str,
         fields: Option<&str>,
         limit: usize,
+        start_at: Option<usize>,
         auth: &Auth,
     ) -> Result<Vec<Value>> {
-        tracing::info!(target: "jira", op = "search_issues", jql = %jql, limit = limit, fields = ?fields);
+        tracing::info!(target: "jira", op = "search_issues", jql = %jql, limit = limit, start_at = ?start_at, fields = ?fields);
         let fields_param = fields.unwrap_or("*all");
-        let query_params = vec![
+        let mut query_params = vec![
             ("jql".into(), jql.to_string()),
             ("fields".into(), fields_param.to_string()),
             ("maxResults".into(), limit.min(DEFAULT_PAGE_SIZE).to_string()),
         ];
+
+        if let Some(offset) = start_at {
+            query_params.push(("startAt".into(), offset.to_string()));
+        }
         let v = self.make_request(
             reqwest::Method::GET,
             "/rest/api/3/search/jql",
@@ -435,395 +400,6 @@ impl ApiClient {
             }
         }
         Ok(issues)
-    }
-    pub async fn get_transitions(
-        &self,
-        issue_key: &str,
-        expand: Option<&str>,
-        auth: &Auth,
-    ) -> Result<Value> {
-        tracing::info!(target: "jira", op = "get_transitions", issue_key = %issue_key, expand = ?expand);
-        let mut query_params = Vec::new();
-        if let Some(exp) = expand {
-            query_params.push(("expand".into(), exp.into()));
-        }
-        let params = if query_params.is_empty() {
-            None
-        } else {
-            Some(query_params)
-        };
-        self.make_request(
-            reqwest::Method::GET,
-            &format!("/rest/api/3/issue/{}/transitions", issue_key),
-            auth,
-            params,
-            None,
-        ).await
-    }
-
-    pub async fn transition_issue(
-        &self,
-        issue_key: &str,
-        transition_id: &str,
-        fields: Option<&serde_json::Value>,
-        comment: Option<&str>,
-        auth: &Auth,
-    ) -> Result<()> {
-        tracing::info!(target: "jira", op = "transition_issue", issue_key = %issue_key, transition_id = %transition_id);
-
-        let mut payload = serde_json::json!({
-            "transition": {
-                "id": transition_id
-            }
-        });
-
-        if let Some(fields_val) = fields {
-            if let Some(obj) = payload.as_object_mut() {
-                obj.insert("fields".to_string(), fields_val.clone());
-            }
-        }
-
-        if let Some(comment_text) = comment {
-            let comment_adf = serde_json::json!({
-                "type": "doc",
-                "version": 1,
-                "content": [{
-                    "type": "paragraph",
-                    "content": [{
-                        "type": "text",
-                        "text": comment_text
-                    }]
-                }]
-            });
-
-            if let Some(obj) = payload.as_object_mut() {
-                obj.insert("update".to_string(), serde_json::json!({
-                    "comment": [{ "add": { "body": comment_adf } }]
-                }));
-            }
-        }
-
-        self.make_request(
-            reqwest::Method::POST,
-            &format!("/rest/api/3/issue/{}/transitions", issue_key),
-            auth,
-            None,
-            Some(payload),
-        ).await?;
-
-        Ok(())
-    }
-
-    pub async fn assign_issue(
-        &self,
-        issue_key: &str,
-        account_id: Option<&str>,
-        auth: &Auth,
-    ) -> Result<()> {
-        tracing::info!(target: "jira", op = "assign_issue", issue_key = %issue_key, account_id = ?account_id);
-
-        let body = serde_json::json!({
-            "accountId": account_id
-        });
-
-        self.make_request(
-            reqwest::Method::PUT,
-            &format!("/rest/api/3/issue/{}/assignee", issue_key),
-            auth,
-            None,
-            Some(body),
-        ).await?;
-
-        Ok(())
-    }
-
-    pub async fn add_watcher(
-        &self,
-        issue_key: &str,
-        account_id: &str,
-        auth: &Auth,
-    ) -> Result<()> {
-        tracing::info!(target: "jira", op = "add_watcher", issue_key = %issue_key, account_id = %account_id);
-
-        let body = serde_json::Value::String(account_id.to_string());
-
-        self.make_request(
-            reqwest::Method::POST,
-            &format!("/rest/api/3/issue/{}/watchers", issue_key),
-            auth,
-            None,
-            Some(body),
-        ).await?;
-
-        Ok(())
-    }
-
-    pub async fn remove_watcher(
-        &self,
-        issue_key: &str,
-        account_id: &str,
-        auth: &Auth,
-    ) -> Result<()> {
-        tracing::info!(target: "jira", op = "remove_watcher", issue_key = %issue_key, account_id = %account_id);
-
-        let query_params = vec![
-            ("accountId".into(), account_id.to_string()),
-        ];
-
-        self.make_request(
-            reqwest::Method::DELETE,
-            &format!("/rest/api/3/issue/{}/watchers", issue_key),
-            auth,
-            Some(query_params),
-            None,
-        ).await?;
-
-        Ok(())
-    }
-
-    pub async fn link_issues(
-        &self,
-        inward_issue_key: &str,
-        outward_issue_key: &str,
-        link_type: &str,
-        auth: &Auth,
-    ) -> Result<()> {
-        tracing::info!(
-            target: "jira",
-            op = "link_issues",
-            inward = %inward_issue_key,
-            outward = %outward_issue_key,
-            link_type = %link_type
-        );
-
-        let body = serde_json::json!({
-            "type": {
-                "name": link_type
-            },
-            "inwardIssue": {
-                "key": inward_issue_key
-            },
-            "outwardIssue": {
-                "key": outward_issue_key
-            }
-        });
-
-        self.make_request(
-            reqwest::Method::POST,
-            "/rest/api/3/issueLink",
-            auth,
-            None,
-            Some(body),
-        ).await?;
-
-        Ok(())
-    }
-
-    pub async fn get_watchers(
-        &self,
-        issue_key: &str,
-        auth: &Auth,
-    ) -> Result<Value> {
-        tracing::info!(target: "jira", op = "get_watchers", issue_key = %issue_key);
-
-        self.make_request(
-            reqwest::Method::GET,
-            &format!("/rest/api/3/issue/{}/watchers", issue_key),
-            auth,
-            None,
-            None,
-        ).await
-    }
-
-    pub async fn delete_issue_link(
-        &self,
-        link_id: &str,
-        auth: &Auth,
-    ) -> Result<()> {
-        tracing::info!(target: "jira", op = "delete_issue_link", link_id = %link_id);
-
-        self.make_request(
-            reqwest::Method::DELETE,
-            &format!("/rest/api/3/issueLink/{}", link_id),
-            auth,
-            None,
-            None,
-        ).await?;
-
-        Ok(())
-    }
-
-    pub async fn update_comment(
-        &self,
-        issue_key: &str,
-        comment_id: &str,
-        body: &str,
-        auth: &Auth,
-    ) -> Result<Value> {
-        tracing::info!(target: "jira", op = "update_comment", issue_key = %issue_key, comment_id = %comment_id);
-
-        let adf_body = serde_json::json!({
-            "body": {
-                "type": "doc",
-                "version": 1,
-                "content": [
-                    {
-                        "type": "paragraph",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": body
-                            }
-                        ]
-                    }
-                ]
-            }
-        });
-
-        self.make_request(
-            reqwest::Method::PUT,
-            &format!("/rest/api/3/issue/{}/comment/{}", issue_key, comment_id),
-            auth,
-            None,
-            Some(adf_body),
-        ).await
-    }
-
-    pub async fn add_labels(
-        &self,
-        issue_key: &str,
-        labels: &[String],
-        auth: &Auth,
-    ) -> Result<()> {
-        tracing::info!(target: "jira", op = "add_labels", issue_key = %issue_key, labels = ?labels);
-
-        let label_ops: Vec<_> = labels.iter().map(|l| json!({ "add": l })).collect();
-
-        let body = json!({
-            "update": {
-                "labels": label_ops
-            }
-        });
-
-        self.make_request(
-            reqwest::Method::PUT,
-            &format!("/rest/api/3/issue/{}", issue_key),
-            auth,
-            None,
-            Some(body),
-        ).await?;
-
-        Ok(())
-    }
-
-    pub async fn remove_labels(
-        &self,
-        issue_key: &str,
-        labels: &[String],
-        auth: &Auth,
-    ) -> Result<()> {
-        tracing::info!(target: "jira", op = "remove_labels", issue_key = %issue_key, labels = ?labels);
-
-        let label_ops: Vec<_> = labels.iter().map(|l| json!({ "remove": l })).collect();
-
-        let body = json!({
-            "update": {
-                "labels": label_ops
-            }
-        });
-
-        self.make_request(
-            reqwest::Method::PUT,
-            &format!("/rest/api/3/issue/{}", issue_key),
-            auth,
-            None,
-            Some(body),
-        ).await?;
-
-        Ok(())
-    }
-
-    pub async fn delete_comment(
-        &self,
-        issue_key: &str,
-        comment_id: &str,
-        auth: &Auth,
-    ) -> Result<()> {
-        tracing::info!(target: "jira", op = "delete_comment", issue_key = %issue_key, comment_id = %comment_id);
-
-        self.make_request(
-            reqwest::Method::DELETE,
-            &format!("/rest/api/3/issue/{}/comment/{}", issue_key, comment_id),
-            auth,
-            None,
-            None,
-        ).await?;
-
-        Ok(())
-    }
-
-    pub async fn list_link_types(&self, auth: &Auth) -> Result<Vec<Value>> {
-        tracing::info!(target: "jira", op = "list_link_types");
-
-        let response: Value = self.make_request(
-            reqwest::Method::GET,
-            "/rest/api/3/issueLinkType",
-            auth,
-            None,
-            None,
-        ).await?;
-
-        let link_types = response
-            .get("issueLinkTypes")
-            .and_then(|lt| lt.as_array())
-            .map(|arr| {
-                arr.iter()
-                    .map(|lt| {
-                        serde_json::json!({
-                            "id": lt.get("id").and_then(|v| v.as_str()).unwrap_or(""),
-                            "name": lt.get("name").and_then(|v| v.as_str()).unwrap_or(""),
-                            "inward": lt.get("inward").and_then(|v| v.as_str()).unwrap_or(""),
-                            "outward": lt.get("outward").and_then(|v| v.as_str()).unwrap_or("")
-                        })
-                    })
-                    .collect()
-            })
-            .unwrap_or_default();
-
-        Ok(link_types)
-    }
-
-    pub async fn get_comments(
-        &self,
-        issue_key: &str,
-        max_results: Option<u32>,
-        order_by: Option<&str>,
-        auth: &Auth,
-    ) -> Result<Value> {
-        tracing::info!(target: "jira", op = "get_comments", issue_key = %issue_key, max_results = ?max_results, order_by = ?order_by);
-
-        let mut query_params: Vec<(String, String)> = Vec::new();
-
-        if let Some(max) = max_results {
-            query_params.push(("maxResults".into(), max.to_string()));
-        }
-
-        let order = order_by.unwrap_or("-created");
-        query_params.push(("orderBy".into(), order.to_string()));
-
-        let query = if query_params.is_empty() {
-            None
-        } else {
-            Some(query_params)
-        };
-
-        self.make_request(
-            reqwest::Method::GET,
-            &format!("/rest/api/3/issue/{}/comment", issue_key),
-            auth,
-            query,
-            None,
-        ).await
     }
 
     pub async fn list_issue_types(
@@ -891,112 +467,5 @@ impl ApiClient {
             }
             Ok(out)
         }
-    }
-
-    /// Add a comment to a Jira issue
-    pub async fn add_comment(
-        &self,
-        issue_key: &str,
-        body: &str,
-        visibility: Option<CommentVisibility>,
-        auth: &Auth,
-    ) -> Result<Value> {
-        tracing::info!(target: "jira", op = "add_comment", issue_key = %issue_key);
-
-        let adf_body = text_to_adf(body);
-
-        let mut payload = json!({
-            "body": adf_body
-        });
-
-        if let Some(vis) = visibility {
-            payload.as_object_mut().unwrap().insert(
-                "visibility".to_string(),
-                json!({
-                    "type": vis.visibility_type,
-                    "value": vis.value
-                }),
-            );
-        }
-
-        self.make_request(
-            reqwest::Method::POST,
-            &format!("/rest/api/3/issue/{}/comment", issue_key),
-            auth,
-            None,
-            Some(payload),
-        ).await
-    }
-
-    /// List labels in Jira. When query is provided, uses autocomplete suggestions for filtering.
-    /// Otherwise returns paginated list of all labels.
-    pub async fn list_labels(
-        &self,
-        query: Option<&str>,
-        start_at: Option<u32>,
-        max_results: Option<u32>,
-        auth: &Auth,
-    ) -> Result<Value> {
-        tracing::info!(target: "jira", op = "list_labels", query = ?query, start_at = ?start_at, max_results = ?max_results);
-
-        if let Some(q) = query {
-            let mut query_params: Vec<(String, String)> = vec![
-                ("fieldName".into(), "labels".into()),
-            ];
-
-            if !q.is_empty() {
-                query_params.push(("fieldValue".into(), q.to_string()));
-            }
-
-            let response: Value = self.make_request(
-                reqwest::Method::GET,
-                "/rest/api/3/jql/autocompletedata/suggestions",
-                auth,
-                Some(query_params),
-                None,
-            ).await?;
-
-            let labels: Vec<String> = response
-                .get("results")
-                .and_then(|r| r.as_array())
-                .map(|arr| {
-                    arr.iter()
-                        .filter_map(|item| item.get("value").and_then(|v| v.as_str()))
-                        .map(|s| s.to_string())
-                        .collect()
-                })
-                .unwrap_or_default();
-
-            return Ok(json!({
-                "labels": labels,
-                "count": labels.len(),
-                "filtered": true,
-                "query": q
-            }));
-        }
-
-        let mut query_params: Vec<(String, String)> = Vec::new();
-
-        if let Some(start) = start_at {
-            query_params.push(("startAt".into(), start.to_string()));
-        }
-
-        if let Some(max) = max_results {
-            query_params.push(("maxResults".into(), max.to_string()));
-        }
-
-        let params = if query_params.is_empty() {
-            None
-        } else {
-            Some(query_params)
-        };
-
-        self.make_request(
-            reqwest::Method::GET,
-            "/rest/api/3/label",
-            auth,
-            params,
-            None,
-        ).await
     }
 }

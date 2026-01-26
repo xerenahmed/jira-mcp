@@ -1,12 +1,13 @@
 use std::collections::HashSet;
 
 use anyhow::Result;
-use jira_core::fields_from_createmeta;
+use jira_client::utils::clean_value_recursive;
 use rmcp::model::CallToolResult;
 
-use super::super::context::JiraCtx;
-use super::super::errors::log_err;
-use super::super::models::{ListFieldsInput, GetFieldDetailsInput};
+use crate::context::JiraCtx;
+use crate::errors::log_err;
+use crate::models::{GetFieldDetailsInput, ListFieldsInput};
+use crate::utils::fields_from_createmeta;
 
 pub async fn list_fields_handler(
     input: ListFieldsInput,
@@ -104,7 +105,7 @@ pub async fn get_field_details_handler(
             field_detail.insert("required".to_string(), serde_json::Value::Bool(field.required));
 
             if !field.allowed_values.is_null() && !field.allowed_values.as_array().map(|a| a.is_empty()).unwrap_or(false) {
-                field_detail.insert("allowed_values".to_string(), field.allowed_values);
+                field_detail.insert("allowed_values".to_string(), clean_value_recursive(&field.allowed_values));
             }
 
             if let Some(schema_obj) = field.schema.as_object() {

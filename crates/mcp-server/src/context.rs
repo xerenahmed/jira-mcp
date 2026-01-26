@@ -7,6 +7,7 @@ pub struct JiraCtx {
     pub auth: JiraAuth,
     pub client: JiraClient,
 }
+
 pub fn jira_ctx() -> Result<JiraCtx, rmcp::ErrorData> {
     tracing::info!(target: "mcp", "Loading Jira configuration");
     let cfg = JiraConfig::load_default().map_err(|e| {

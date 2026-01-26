@@ -1,5 +1,7 @@
 use serde_json::Value;
 
+use crate::models::FieldDef;
+
 pub fn process_jira_fields(fields: &serde_json::Value) -> serde_json::Map<String, Value> {
     if let Some(s) = fields.as_str() {
         tracing::warn!(
@@ -106,4 +108,65 @@ pub fn process_jira_fields(fields: &serde_json::Value) -> serde_json::Map<String
     }
 
     processed_fields
+}
+
+pub fn fields_from_createmeta(
+    meta: &Value,
+    project_key: Option<&str>,
+    issue_type: Option<&str>,
+) -> Vec<FieldDef> {
+    let mut out = Vec::new();
+
+    if let Some(projects) = meta.get("projects").and_then(|v| v.as_array()) {
+        'p: for p in projects {
+            if let Some(pk) = project_key {
+                if p.get("key").and_then(|v| v.as_str()) != Some(pk) {
+                    continue 'p;
+                }
+            }
+
+            if let Some(its) = p.get("issuetypes").and_then(|v| v.as_array()) {
+                for it in its {
+                    if let Some(itn) = issue_type {
+                        if it.get("name").and_then(|v| v.as_str()) != Some(itn) {
+                            continue;
+                        }
+                    }
+
+                    if let Some(fields) = it.get("fields").and_then(|v| v.as_object()) {
+                        for (fid, fdef) in fields.iter() {
+                            let name = fdef
+                                .get("name")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or(fid)
+                                .to_string();
+
+                            let required = fdef
+                                .get("required")
+                                .and_then(|v| v.as_bool())
+                                .unwrap_or(false);
+
+                            let schema =
+                                fdef.get("schema").cloned().unwrap_or(serde_json::json!({}));
+
+                            let allowed_values = fdef
+                                .get("allowedValues")
+                                .cloned()
+                                .unwrap_or(serde_json::json!([]));
+
+                            out.push(FieldDef {
+                                id: fid.clone(),
+                                name,
+                                required,
+                                schema,
+                                allowed_values,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    out
 }

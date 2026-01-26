@@ -1,4 +1,3 @@
-
 const FIELDS_TO_REMOVE: &[&str] = &[
     "avatarUrls",
     "iconUrl",
@@ -13,6 +12,7 @@ const FIELDS_TO_REMOVE: &[&str] = &[
     "total",
     "attachment",
 ];
+
 pub fn clean_value_recursive(value: &serde_json::Value) -> serde_json::Value {
     match value {
         serde_json::Value::Object(obj) => {

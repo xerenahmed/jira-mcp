@@ -12,7 +12,6 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 tracing-appender = { workspace = true }
 directories = { workspace = true }
-jira_core = { path = "../core", package = "core" }
 jira-client = { path = "../jira-client" }
 schemars = { workspace = true }
 serde = { workspace = true }

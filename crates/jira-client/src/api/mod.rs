@@ -3,9 +3,10 @@ use url::Url;
 
 use crate::auth::{apply_auth, Auth};
 use crate::error::JiraError;
+
+pub mod boards;
 pub mod issues;
 pub mod projects;
-pub mod boards;
 pub mod users;
 
 #[derive(Clone)]

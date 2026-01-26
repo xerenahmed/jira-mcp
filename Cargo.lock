@@ -140,20 +140,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "core"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "jira-client",
- "once_cell",
- "schemars",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
- "tracing",
-]
-
-[[package]]
 name = "core-foundation"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -680,6 +666,7 @@ name = "jira-client"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "directories",
  "reqwest",
  "serde",
@@ -748,7 +735,6 @@ name = "mcp-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "core",
  "directories",
  "futures",
  "jira-client",

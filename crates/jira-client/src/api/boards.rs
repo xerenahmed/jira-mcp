@@ -126,7 +126,6 @@ impl ApiClient {
                     }
                 }
 
-
                 let total = v.get("total").and_then(|t| t.as_u64()).unwrap_or(0) as usize;
                 let fetched = all_boards.len();
 
