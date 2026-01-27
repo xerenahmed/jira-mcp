@@ -75,16 +75,26 @@ Developer-focused Model Context Protocol (MCP) server for Jira that communicates
 
 Download the latest binary for your platform from [GitHub Releases](https://github.com/xerenahmed/jira-mcp/releases):
 
-| Platform | Binary |
-|----------|--------|
-| Linux x86_64 | `mcp-server-linux-x86_64` |
-| macOS x86_64 (Intel) | `mcp-server-macos-x86_64` |
+| Platform | Archive |
+|----------|---------|
+| Linux x86_64 | `mcp-server-linux-x86_64.tar.gz` |
+| macOS x86_64 (Intel) | `mcp-server-macos-x86_64.tar.gz` |
+| macOS ARM64 (Apple Silicon) | `mcp-server-macos-arm64.tar.gz` |
 
 ```bash
-# Example: Download and make executable (Linux)
-chmod +x mcp-server-linux-x86_64
-./mcp-server-linux-x86_64 --help
+# Example: Download and extract (Linux/macOS)
+curl -L -o mcp-server.tar.gz https://github.com/xerenahmed/jira-mcp/releases/latest/download/mcp-server-macos-arm64.tar.gz
+tar -xzf mcp-server.tar.gz
+./mcp-server --help
 ```
+
+**Note for macOS users:** If you see a security warning when first running the binary ("Apple could not verify..."), you can remove the quarantine attribute:
+
+```bash
+xattr -d com.apple.quarantine ./mcp-server
+```
+
+Or go to **System Settings > Privacy & Security > Security** and click **"Allow Anyway"** after attempting to run the binary.
 
 ### Building from Source
 

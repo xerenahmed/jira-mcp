@@ -60,11 +60,18 @@ jobs:
         run: |
           strip "target/${{ matrix.platform.target }}/release/mcp-server" || true
 
+      - name: Create archive
+        run: |
+          cd "target/${{ matrix.platform.target }}/release"
+          tar -czf "../../../../${{ matrix.platform.artifact_name }}.tar.gz" mcp-server
+          cd -
+          ls -la "${{ matrix.platform.artifact_name }}.tar.gz"
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform.artifact_name }}
-          path: target/${{ matrix.platform.target }}/release/mcp-server
+          path: ${{ matrix.platform.artifact_name }}.tar.gz
           if-no-files-found: error
 
   release:
@@ -83,13 +90,14 @@ jobs:
         with:
           path: artifacts
 
-      - name: Rename binaries for release
+      - name: Rename archives for release
         run: |
           cd artifacts
           for dir in */; do
             platform="${dir%/}"
-            mv "${dir}mcp-server" "${dir}${platform}"
+            mv "${dir}${platform}.tar.gz" "${platform}.tar.gz"
           done
+          ls -la
 
       - name: Generate release info
         id: release_info
@@ -120,6 +128,6 @@ jobs:
             - Linux x86_64
             - macOS x86_64 (Intel)
             - macOS ARM64 (Apple Silicon)
-          files: artifacts/**/*
+          files: artifacts/*.tar.gz
           draft: false
           prerelease: false
