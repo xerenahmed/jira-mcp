@@ -10,7 +10,7 @@ build:
     cargo build --workspace
 
 run-mcp:
-    cargo run -p mcp-server
+    cargo run -p jira-mcp
 
 run-cli:
     cargo run -p jira-assistant-cli

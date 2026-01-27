@@ -16,46 +16,20 @@ pub struct JiraClient {
 }
 
 impl JiraClient {
-    pub fn new(base_url: impl AsRef<str>, auth: Auth) -> Result<Self> {
+    pub fn new(base_url: impl AsRef<str>, _auth: Auth) -> Result<Self> {
         let url = Url::parse(base_url.as_ref())?;
 
-        let client = match auth {
-            Auth::Basic {
-                username: _,
-                token: _,
-            } => {
-                let mut builder = reqwest::Client::builder();
-                builder = builder.user_agent("jira-mcp/0.1");
-                builder.build()?
-            }
-            Auth::Bearer { token: _ } => {
-                reqwest::Client::builder()
-                    .user_agent("jira-mcp/0.1")
-                    .build()?
-            }
-            Auth::None => reqwest::Client::new(),
-        };
+        let client = reqwest::Client::builder()
+            .user_agent("jira-mcp/0.1")
+            .build()?;
 
         let api_client = ApiClient::new(url, client);
 
         Ok(Self { api_client })
     }
 
-    pub fn from_config(cfg: JiraConfig) -> Result<Self> {
-        let auth = match (
-            &cfg.auth.method[..],
-            cfg.auth.username.clone(),
-            cfg.auth.token.clone(),
-        ) {
-            ("pat", Some(user), Some(token)) => Auth::Basic {
-                username: user,
-                token,
-            },
-            ("bearer", _, Some(token)) => Auth::Bearer { token },
-            _ => Auth::None,
-        };
-
-        Self::new(&cfg.jira_base_url, auth)
+    pub fn from_config(cfg: &JiraConfig) -> Result<Self> {
+        Self::new(&cfg.jira_base_url, cfg.create_auth())
     }
 
     pub fn base_url(&self) -> &url::Url {

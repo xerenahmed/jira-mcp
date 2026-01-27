@@ -1,4 +1,4 @@
-name: Build and Release mcp-server
+name: Build and Release jira-mcp
 
 on:
   push:
@@ -15,15 +15,15 @@ jobs:
           - name: Linux x86_64
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact_name: mcp-server-linux-x86_64
+            artifact_name: jira-mcp-linux-x86_64
           - name: macOS x86_64
             os: macos-15-intel
             target: x86_64-apple-darwin
-            artifact_name: mcp-server-macos-x86_64
+            artifact_name: jira-mcp-macos-x86_64
           - name: macOS ARM64
             os: macos-latest
             target: aarch64-apple-darwin
-            artifact_name: mcp-server-macos-arm64
+            artifact_name: jira-mcp-macos-arm64
 
     steps:
       - name: Checkout code
@@ -52,18 +52,18 @@ jobs:
           path: target
           key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Build mcp-server
-        run: cargo build --release --package mcp-server --target ${{ matrix.platform.target }}
+      - name: Build jira-mcp
+        run: cargo build --release --package jira-mcp --target ${{ matrix.platform.target }}
 
       - name: Strip binary (Unix)
         if: runner.os != 'Windows'
         run: |
-          strip "target/${{ matrix.platform.target }}/release/mcp-server" || true
+          strip "target/${{ matrix.platform.target }}/release/jira-mcp" || true
 
       - name: Create archive
         run: |
           cd "target/${{ matrix.platform.target }}/release"
-          tar -czf "../../../../${{ matrix.platform.artifact_name }}.tar.gz" mcp-server
+          tar -czf "../../../../${{ matrix.platform.artifact_name }}.tar.gz" jira-mcp
           cd -
           ls -la "${{ matrix.platform.artifact_name }}.tar.gz"
 

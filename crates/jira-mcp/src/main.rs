@@ -2,20 +2,45 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use anyhow::Result;
+use clap::Parser;
 use directories::ProjectDirs;
-use mcp_server::serve_stdio;
+use jira_client::config::JiraConfig;
+use jira_mcp::server::serve_stdio;
 use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Registry};
+
+#[derive(Parser)]
+#[command(name = "jira-mcp")]
+#[command(about = "Jira MCP Server - Model Context Protocol server for Jira")]
+struct Args {
+    /// Jira base URL (e.g., https://your-domain.atlassian.net)
+    #[arg(long, env = "JIRA_BASE_URL")]
+    jira_url: String,
+
+    /// Jira username/email
+    #[arg(long, env = "JIRA_USERNAME")]
+    username: String,
+
+    /// Jira API token
+    #[arg(long, env = "JIRA_TOKEN")]
+    token: String,
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let _guard = init_tracing();
 
-    serve_stdio().await
+    let args = Args::parse();
+
+    let config = JiraConfig::new(args.jira_url, args.username, args.token);
+
+    tracing::info!(base_url = %config.jira_base_url, "Starting Jira MCP server");
+
+    serve_stdio(config).await
 }
 
 fn init_tracing() -> tracing_appender::non_blocking::WorkerGuard {
     let log_path = get_log_dir();
-    
+
     if fs::create_dir_all(&log_path).is_err() {
         eprintln!("Warning: Failed to create log directory at {}, falling back to temp directory", log_path.display());
         let fallback_path = std::env::temp_dir().join("jira-mcp-logs");

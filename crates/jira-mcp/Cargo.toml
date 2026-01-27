@@ -1,5 +1,5 @@
 [package]
-name = "mcp-server"
+name = "jira-mcp"
 version = "0.1.0"
 edition = "2021"
 
@@ -17,6 +17,7 @@ schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 futures = "0.3"
+clap = { version = "4", features = ["derive", "env"] }
 
 # The actual crate name in the SDK may differ; this uses a placeholder alias.
 # Update once the correct crate name is confirmed.

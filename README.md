@@ -4,7 +4,7 @@
 Developer-focused Model Context Protocol (MCP) server for Jira that communicates over stdio.
 
 - Crates:
-  - `crates/mcp-server`: MCP server exposing Jira tools
+  - `crates/jira-mcp`: MCP server exposing Jira tools
   - `crates/jira-client`: Jira REST client
 - **31 tools** across 7 categories (see below)
 
@@ -77,21 +77,21 @@ Download the latest binary for your platform from [GitHub Releases](https://gith
 
 | Platform | Archive |
 |----------|---------|
-| Linux x86_64 | `mcp-server-linux-x86_64.tar.gz` |
-| macOS x86_64 (Intel) | `mcp-server-macos-x86_64.tar.gz` |
-| macOS ARM64 (Apple Silicon) | `mcp-server-macos-arm64.tar.gz` |
+| Linux x86_64 | `jira-mcp-linux-x86_64.tar.gz` |
+| macOS x86_64 (Intel) | `jira-mcp-macos-x86_64.tar.gz` |
+| macOS ARM64 (Apple Silicon) | `jira-mcp-macos-arm64.tar.gz` |
 
 ```bash
 # Example: Download and extract (Linux/macOS)
-curl -L -o mcp-server.tar.gz https://github.com/xerenahmed/jira-mcp/releases/latest/download/mcp-server-macos-arm64.tar.gz
-tar -xzf mcp-server.tar.gz
-./mcp-server --help
+curl -L -o jira-mcp.tar.gz https://github.com/xerenahmed/jira-mcp/releases/latest/download/jira-mcp-macos-arm64.tar.gz
+tar -xzf jira-mcp.tar.gz
+./jira-mcp --help
 ```
 
 **Note for macOS users:** If you see a security warning when first running the binary ("Apple could not verify..."), you can remove the quarantine attribute:
 
 ```bash
-xattr -d com.apple.quarantine ./mcp-server
+xattr -d com.apple.quarantine ./jira-mcp
 ```
 
 Or go to **System Settings > Privacy & Security > Security** and click **"Allow Anyway"** after attempting to run the binary.
@@ -104,7 +104,7 @@ Requires Rust (stable). The repo pins the version via `rust-toolchain.toml`.
 cargo build --release
 ```
 
-The binary will be at `target/release/mcp-server`.
+The binary will be at `target/release/jira-mcp`.
 
 ## Configuration
 
@@ -122,7 +122,7 @@ CLI arguments take precedence over environment variables.
 
 ```bash
 # With CLI arguments
-./mcp-server \
+./jira-mcp \
   --jira-url https://your-domain.atlassian.net \
   --username you@example.com \
   --token your-api-token
@@ -131,7 +131,7 @@ CLI arguments take precedence over environment variables.
 JIRA_BASE_URL=https://your-domain.atlassian.net \
 JIRA_USERNAME=you@example.com \
 JIRA_TOKEN=your-api-token \
-./mcp-server
+./jira-mcp
 ```
 
 ## Adding to Claude
@@ -143,7 +143,7 @@ claude mcp add jira \
   -e JIRA_BASE_URL=https://your-domain.atlassian.net \
   -e JIRA_USERNAME=you@example.com \
   -e JIRA_TOKEN=your-api-token \
-  -- /path/to/mcp-server
+  -- /path/to/jira-mcp
 ```
 
 **Option 2: Manual Configuration**
@@ -153,7 +153,7 @@ Update your Claude config at `~/.claude.json`:
 {
   "mcpServers": {
     "jira": {
-      "command": "/path/to/mcp-server",
+      "command": "/path/to/jira-mcp",
       "env": {
         "JIRA_BASE_URL": "https://your-domain.atlassian.net",
         "JIRA_USERNAME": "you@example.com",

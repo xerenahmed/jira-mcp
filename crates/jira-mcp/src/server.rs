@@ -1,4 +1,5 @@
 use anyhow::Result;
+use jira_client::config::JiraConfig;
 use rmcp::{
     handler::server::{router::tool::ToolRouter, wrapper::Parameters},
     model::{CallToolResult, Implementation, ProtocolVersion, ServerCapabilities, ServerInfo},
@@ -6,26 +7,22 @@ use rmcp::{
     transport::stdio,
     ServerHandler, ServiceExt,
 };
-use super::context::jira_ctx;
+use super::context::JiraCtx;
 use super::handlers;
 use super::models::*;
 
 #[derive(Clone)]
 pub struct JiraAssistantServer {
     tool_router: ToolRouter<Self>,
-}
-
-impl Default for JiraAssistantServer {
-    fn default() -> Self {
-        Self::new()
-    }
+    ctx: JiraCtx,
 }
 
 #[tool_router]
 impl JiraAssistantServer {
-    pub fn new() -> Self {
+    pub fn new(ctx: JiraCtx) -> Self {
         Self {
             tool_router: Self::tool_router(),
+            ctx,
         }
     }
 
@@ -39,7 +36,7 @@ impl JiraAssistantServer {
         p: Parameters<CreateIssueInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        handlers::issues::create_issue_handler(input).await
+        handlers::issues::create_issue_handler(input, &self.ctx).await
     }
 
     #[tool(description = "Update a Jira issue with specified fields")]
@@ -48,7 +45,7 @@ impl JiraAssistantServer {
         p: Parameters<UpdateIssueInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        handlers::issues::update_issue_handler(input).await
+        handlers::issues::update_issue_handler(input, &self.ctx).await
     }
 
     #[tool(description = "Search issues by JQL query")]
@@ -57,8 +54,7 @@ impl JiraAssistantServer {
         p: Parameters<SearchIssuesInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::issues::search_issues_handler(input, &ctx).await
+        handlers::issues::search_issues_handler(input, &self.ctx).await
     }
 
     #[tool(description = "Get a Jira issue with full fields (including custom), plus name mapping and schema")]
@@ -67,8 +63,7 @@ impl JiraAssistantServer {
         p: Parameters<GetIssueInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::issues::get_issue_handler(input, &ctx).await
+        handlers::issues::get_issue_handler(input, &self.ctx).await
     }
 
     // =========================================================================
@@ -81,8 +76,7 @@ impl JiraAssistantServer {
         p: Parameters<GetTransitionsInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::issues::get_transitions_handler(input, &ctx).await
+        handlers::issues::get_transitions_handler(input, &self.ctx).await
     }
 
     #[tool(description = "Transition an issue to a new status")]
@@ -91,8 +85,7 @@ impl JiraAssistantServer {
         p: Parameters<TransitionIssueInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::issues::transition_issue_handler(input, &ctx).await
+        handlers::issues::transition_issue_handler(input, &self.ctx).await
     }
 
     #[tool(description = "Assign or unassign a user to/from an issue")]
@@ -101,8 +94,7 @@ impl JiraAssistantServer {
         p: Parameters<AssignIssueInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::issues::assign_issue_handler(input, &ctx).await
+        handlers::issues::assign_issue_handler(input, &self.ctx).await
     }
 
     // =========================================================================
@@ -115,8 +107,7 @@ impl JiraAssistantServer {
         p: Parameters<AddCommentInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::issues::add_comment_handler(input, &ctx).await
+        handlers::issues::add_comment_handler(input, &self.ctx).await
     }
 
     #[tool(description = "Get comments from a Jira issue")]
@@ -125,8 +116,7 @@ impl JiraAssistantServer {
         p: Parameters<GetCommentsInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::issues::get_comments_handler(input, &ctx).await
+        handlers::issues::get_comments_handler(input, &self.ctx).await
     }
 
     #[tool(description = "Update an existing comment on an issue")]
@@ -135,8 +125,7 @@ impl JiraAssistantServer {
         p: Parameters<UpdateCommentInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::issues::update_comment_handler(input, &ctx).await
+        handlers::issues::update_comment_handler(input, &self.ctx).await
     }
 
     #[tool(description = "Delete a comment from an issue")]
@@ -145,8 +134,7 @@ impl JiraAssistantServer {
         p: Parameters<DeleteCommentInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::issues::delete_comment_handler(input, &ctx).await
+        handlers::issues::delete_comment_handler(input, &self.ctx).await
     }
 
     // =========================================================================
@@ -159,8 +147,7 @@ impl JiraAssistantServer {
         p: Parameters<AddWatcherInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::issues::add_watcher_handler(input, &ctx).await
+        handlers::issues::add_watcher_handler(input, &self.ctx).await
     }
 
     #[tool(description = "Remove a user as a watcher from an issue")]
@@ -169,8 +156,7 @@ impl JiraAssistantServer {
         p: Parameters<RemoveWatcherInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::issues::remove_watcher_handler(input, &ctx).await
+        handlers::issues::remove_watcher_handler(input, &self.ctx).await
     }
 
     #[tool(description = "Get all watchers for an issue")]
@@ -179,8 +165,7 @@ impl JiraAssistantServer {
         p: Parameters<GetWatchersInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::issues::get_watchers_handler(input, &ctx).await
+        handlers::issues::get_watchers_handler(input, &self.ctx).await
     }
 
     // =========================================================================
@@ -193,8 +178,7 @@ impl JiraAssistantServer {
         p: Parameters<LinkIssuesInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::issues::link_issues_handler(input, &ctx).await
+        handlers::issues::link_issues_handler(input, &self.ctx).await
     }
 
     #[tool(description = "Delete a link between two issues")]
@@ -203,8 +187,7 @@ impl JiraAssistantServer {
         p: Parameters<DeleteIssueLinkInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::issues::delete_issue_link_handler(input, &ctx).await
+        handlers::issues::delete_issue_link_handler(input, &self.ctx).await
     }
 
     #[tool(description = "List all available issue link types (e.g., Blocks, Duplicates, Relates)")]
@@ -212,8 +195,7 @@ impl JiraAssistantServer {
         &self,
         _p: Parameters<ListLinkTypesInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
-        let ctx = jira_ctx()?;
-        handlers::issues::list_link_types_handler(&ctx).await
+        handlers::issues::list_link_types_handler(&self.ctx).await
     }
 
     // =========================================================================
@@ -226,8 +208,7 @@ impl JiraAssistantServer {
         p: Parameters<AddLabelInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::issues::add_label_handler(input, &ctx).await
+        handlers::issues::add_label_handler(input, &self.ctx).await
     }
 
     #[tool(description = "Remove one or more labels from an issue")]
@@ -236,8 +217,7 @@ impl JiraAssistantServer {
         p: Parameters<RemoveLabelInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::issues::remove_label_handler(input, &ctx).await
+        handlers::issues::remove_label_handler(input, &self.ctx).await
     }
 
     #[tool(description = "List or search labels in Jira. Use 'query' to filter by name (recommended for large orgs), or omit for paginated full list.")]
@@ -246,8 +226,7 @@ impl JiraAssistantServer {
         p: Parameters<ListLabelsInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::metadata::list_labels_handler(input, &ctx).await
+        handlers::metadata::list_labels_handler(input, &self.ctx).await
     }
 
     // =========================================================================
@@ -260,8 +239,7 @@ impl JiraAssistantServer {
         p: Parameters<ListFieldsInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::fields::list_fields_handler(input, &ctx).await
+        handlers::fields::list_fields_handler(input, &self.ctx).await
     }
 
     #[tool(description = "Get detailed field information (schema, allowed_values) for specific fields")]
@@ -270,8 +248,7 @@ impl JiraAssistantServer {
         p: Parameters<GetFieldDetailsInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::fields::get_field_details_handler(input, &ctx).await
+        handlers::fields::get_field_details_handler(input, &self.ctx).await
     }
 
     #[tool(description = "List issue types globally or for a project")]
@@ -280,8 +257,7 @@ impl JiraAssistantServer {
         p: Parameters<ListIssueTypesInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::metadata::list_issue_types_handler(input, &ctx).await
+        handlers::metadata::list_issue_types_handler(input, &self.ctx).await
     }
 
     // =========================================================================
@@ -294,8 +270,7 @@ impl JiraAssistantServer {
         p: Parameters<ListBoardsInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(p) = p;
-        let ctx = jira_ctx()?;
-        handlers::metadata::list_boards_handler(p.project_key, &ctx).await
+        handlers::metadata::list_boards_handler(p.project_key, &self.ctx).await
     }
 
     #[tool(description = "List all sprints for a board")]
@@ -304,8 +279,7 @@ impl JiraAssistantServer {
         p: Parameters<ListSprintsInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::metadata::list_sprints_handler(input, &ctx).await
+        handlers::metadata::list_sprints_handler(input, &self.ctx).await
     }
 
     #[tool(description = "Get details of a specific sprint")]
@@ -314,8 +288,7 @@ impl JiraAssistantServer {
         p: Parameters<GetSprintInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::metadata::get_sprint_handler(input, &ctx).await
+        handlers::metadata::get_sprint_handler(input, &self.ctx).await
     }
 
     #[tool(description = "Move one or more issues to a sprint")]
@@ -324,8 +297,7 @@ impl JiraAssistantServer {
         p: Parameters<MoveToSprintInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::metadata::move_to_sprint_handler(input, &ctx).await
+        handlers::metadata::move_to_sprint_handler(input, &self.ctx).await
     }
 
     #[tool(description = "Move issues to the backlog (remove from sprint)")]
@@ -334,8 +306,7 @@ impl JiraAssistantServer {
         p: Parameters<MoveToBacklogInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::metadata::move_to_backlog_handler(input, &ctx).await
+        handlers::metadata::move_to_backlog_handler(input, &self.ctx).await
     }
 
     // =========================================================================
@@ -348,14 +319,12 @@ impl JiraAssistantServer {
         p: Parameters<ListProjectsInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::projects::list_projects_handler(input, &ctx).await
+        handlers::projects::list_projects_handler(input, &self.ctx).await
     }
 
     #[tool(description = "Get current authenticated user info (account id, display name, etc.)")]
     async fn get_user_info(&self) -> Result<CallToolResult, rmcp::ErrorData> {
-        let ctx = jira_ctx()?;
-        handlers::metadata::get_user_info_handler(&ctx).await
+        handlers::metadata::get_user_info_handler(&self.ctx).await
     }
 
     #[tool(description = "Search for users by name, email, or display name")]
@@ -364,8 +333,7 @@ impl JiraAssistantServer {
         p: Parameters<SearchUsersInput>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         let Parameters(input) = p;
-        let ctx = jira_ctx()?;
-        handlers::users::search_users_handler(input, &ctx).await
+        handlers::users::search_users_handler(input, &self.ctx).await
     }
 }
 
@@ -381,8 +349,12 @@ impl ServerHandler for JiraAssistantServer {
     }
 }
 
-pub async fn serve_stdio() -> Result<()> {
-    let service = JiraAssistantServer::new().serve(stdio()).await?;
+pub async fn serve_stdio(config: JiraConfig) -> Result<()> {
+    let ctx = JiraCtx::from_config(&config).map_err(|e| {
+        anyhow::anyhow!("Failed to create Jira context: {:?}", e)
+    })?;
+
+    let service = JiraAssistantServer::new(ctx).serve(stdio()).await?;
     service.waiting().await?;
     Ok(())
 }

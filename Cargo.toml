@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "crates/mcp-server",
+    "crates/jira-mcp",
     "crates/jira-client",
 ]
 resolver = "2"

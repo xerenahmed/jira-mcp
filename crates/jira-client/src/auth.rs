@@ -1,14 +1,16 @@
+/// Authentication for Jira API (always Basic auth with username + API token)
 #[derive(Debug, Clone)]
-pub enum Auth {
-    None,
-    Basic { username: String, token: String },
-    Bearer { token: String },
+pub struct Auth {
+    pub username: String,
+    pub token: String,
+}
+
+impl Auth {
+    pub fn new(username: String, token: String) -> Self {
+        Self { username, token }
+    }
 }
 
 pub fn apply_auth(req: reqwest::RequestBuilder, auth: &Auth) -> reqwest::RequestBuilder {
-    match auth {
-        Auth::None => req,
-        Auth::Basic { username, token } => req.basic_auth(username.clone(), Some(token.clone())),
-        Auth::Bearer { token } => req.bearer_auth(token.clone()),
-    }
+    req.basic_auth(&auth.username, Some(&auth.token))
 }

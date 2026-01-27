@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use anyhow::Result;
 use rmcp::model::CallToolResult;
 
 use crate::context::JiraCtx;
@@ -11,6 +10,7 @@ use crate::services::CoreService;
 
 pub async fn create_issue_handler(
     input: CreateIssueInput,
+    ctx: &JiraCtx,
 ) -> Result<CallToolResult, rmcp::ErrorData> {
     tracing::info!(
         target: "mcp",
@@ -18,7 +18,7 @@ pub async fn create_issue_handler(
         "Creating Jira issue"
     );
 
-    let svc = CoreService::new();
+    let svc = CoreService::new(ctx);
 
     let res = svc
         .create_issue(input.clone())
@@ -84,6 +84,7 @@ pub async fn create_issue_handler(
 
 pub async fn update_issue_handler(
     input: UpdateIssueInput,
+    ctx: &JiraCtx,
 ) -> Result<CallToolResult, rmcp::ErrorData> {
     tracing::info!(
         target: "mcp",
@@ -92,7 +93,7 @@ pub async fn update_issue_handler(
         "Updating Jira issue"
     );
 
-    let svc = CoreService::new();
+    let svc = CoreService::new(ctx);
 
     let res = svc
         .update_issue(input.clone())
