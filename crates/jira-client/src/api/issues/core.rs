@@ -77,7 +77,7 @@ impl ApiClient {
         tracing::info!(target: "jira", op = "get_issue_detail", key = %key);
         let query_params = vec![
             ("fields".into(), "*all".into()),
-            ("expand".into(), "schema".into()),
+            ("expand".into(), "schema,names".into()),
         ];
         let v = self.make_request(
             reqwest::Method::GET,
@@ -185,6 +185,29 @@ impl ApiClient {
             .get("summary")
             .and_then(|s| s.as_str())
             .map(|s| s.to_string());
+
+        let names_map = v.get("names")
+            .and_then(|n| n.as_object())
+            .cloned()
+            .unwrap_or_default();
+
+        let flagged_field_id = names_map.iter()
+            .find(|(_, name)| {
+                name.as_str()
+                    .map(|n| n.eq_ignore_ascii_case("flagged"))
+                    .unwrap_or(false)
+            })
+            .map(|(id, _)| id.clone());
+
+        let flagged = flagged_field_id.as_ref()
+            .and_then(|id| fields.get(id))
+            .map(|v| match v {
+                Value::Array(arr) => !arr.is_empty(),
+                Value::Null => false,
+                _ => false,
+            })
+            .unwrap_or(false);
+
         let mapped_fields = if let Some(fields_obj) = fields.as_object() {
             let mut mapped = serde_json::Map::new();
             for (field_id, field_value) in fields_obj {
@@ -217,6 +240,7 @@ impl ApiClient {
             key,
             url,
             summary,
+            flagged,
             fields: mapped_fields,
         })
     }

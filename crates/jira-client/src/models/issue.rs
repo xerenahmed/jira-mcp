@@ -11,6 +11,7 @@ pub struct IssueDetail {
     pub key: String,
     pub url: String,
     pub summary: Option<String>,
+    pub flagged: bool,
     pub fields: serde_json::Value,
 }
 
