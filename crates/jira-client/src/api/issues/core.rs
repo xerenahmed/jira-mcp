@@ -86,49 +86,11 @@ impl ApiClient {
             Some(query_params),
             None,
         ).await?;
-        let project_key = v
-            .get("fields")
-            .and_then(|f| f.get("project"))
-            .and_then(|p| p.get("key"))
-            .and_then(|k| k.as_str());
-        let issue_type = v
-            .get("fields")
-            .and_then(|f| f.get("issuetype"))
-            .and_then(|i| i.get("name"))
-            .and_then(|n| n.as_str());
-        let createmeta = self.get_createmeta(project_key, issue_type, auth).await.ok();
-        let mut field_name_map = std::collections::HashMap::new();
+        let names_map = v.get("names")
+            .and_then(|n| n.as_object())
+            .cloned()
+            .unwrap_or_default();
 
-        if let Some(meta) = createmeta {
-            if let Some(projects) = meta.get("projects").and_then(|p| p.as_array()) {
-                for p in projects {
-                    if let Some(issuetypes) = p.get("issuetypes").and_then(|i| i.as_array()) {
-                        for it in issuetypes {
-                            if let Some(fields_obj) = it.get("fields").and_then(|f| f.as_object()) {
-                                for (field_id, field_def) in fields_obj {
-                                    if let Some(name) = field_def.get("name").and_then(|n| n.as_str()) {
-                                        field_name_map.insert(field_id.clone(), name.to_string());
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        let editmeta = self.get_issue_editmeta(key, auth).await.ok();
-
-        if let Some(meta) = editmeta {
-            if let Some(fields_obj) = meta.get("fields").and_then(|f| f.as_object()) {
-                for (field_id, field_def) in fields_obj {
-                    if !field_name_map.contains_key(field_id) {
-                        if let Some(name) = field_def.get("name").and_then(|n| n.as_str()) {
-                            field_name_map.insert(field_id.clone(), name.to_string());
-                        }
-                    }
-                }
-            }
-        }
         let schema = v.get("schema")
             .and_then(|s| s.as_object())
             .cloned()
@@ -186,11 +148,6 @@ impl ApiClient {
             .and_then(|s| s.as_str())
             .map(|s| s.to_string());
 
-        let names_map = v.get("names")
-            .and_then(|n| n.as_object())
-            .cloned()
-            .unwrap_or_default();
-
         let flagged_field_id = names_map.iter()
             .find(|(_, name)| {
                 name.as_str()
@@ -211,8 +168,8 @@ impl ApiClient {
         let mapped_fields = if let Some(fields_obj) = fields.as_object() {
             let mut mapped = serde_json::Map::new();
             for (field_id, field_value) in fields_obj {
-                let field_name = field_name_map.get(field_id)
-                    .map(|s| s.as_str())
+                let field_name = names_map.get(field_id)
+                    .and_then(|v| v.as_str())
                     .or_else(|| {
                         schema.get(field_id)
                             .and_then(|s| s.get("name"))
